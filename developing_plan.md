@@ -46,15 +46,16 @@ tg_budgeting/
 
 ---
 
-## Step 3 — Config & environment wiring
-- [ ] Write `config.py` — load and expose all env vars
-- [ ] Update `.env` and `.env.example` with all variables:
+## Step 3 — Config & environment wiring ✅ DONE
+- [x] Write `config.py` — load and expose all env vars
+- [x] Update `.env` and `.env.example` with all variables:
   - `BOT_TOKEN`
   - `ALLOWED_USERS` (comma-separated Telegram user IDs)
   - `OPENAI_API_KEY`
   - `SPREADSHEET_ID`
-  - `GOOGLE_CREDENTIALS_JSON` (path to service account JSON)
+  - `GOOGLE_CREDENTIALS_JSON` (service account JSON as single-line string)
   - `LOG_LEVEL`
+- Note: switched from OAuth2 to service account for Google Sheets auth
 
 ---
 
