@@ -92,12 +92,14 @@ tg_budgeting/
 
 ---
 
-## Step 8 — Clarification FSM
-- [ ] `bot/states.py` — define `Form.clarifying` state
-- [ ] On incomplete parse: send `clarifying_question`, enter FSM state, store partial data
-- [ ] Next message re-parsed with accumulated context
-- [ ] Max 3 clarification rounds; on failure → write `unknown` to category field and save anyway
-- [ ] **Test:** send "купил продукты" (no amount) → bot asks → user answers → complete
+## Step 8 — Clarification FSM ✅ DONE
+- [x] `bot/states.py` — `Form.clarifying_amount` and `Form.clarifying_category` states
+- [x] Both amount and category missing → ask to rephrase, no FSM state saved
+- [x] Amount missing → FSM clarifying_amount, max 3 attempts, 5 min timeout, then drop
+- [x] Category missing → FSM clarifying_category, inline keyboard with all categories, accept voice too
+- [x] Max 3 clarification rounds for category → write `unknown` and save
+- [x] Timeout 5 min → clear state, ask to resend
+- [x] **Test:** send message without amount → bot asks → user answers → complete
 
 ---
 

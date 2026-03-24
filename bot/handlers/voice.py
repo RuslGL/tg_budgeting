@@ -1,6 +1,9 @@
 import logging
 
 from aiogram import Bot, Router
+from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import default_state
 from aiogram.types import Message, Voice
 
 from bot.handlers.text import process_transaction
@@ -10,8 +13,8 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 
-@router.message()
-async def handle_voice(message: Message, bot: Bot) -> None:
+@router.message(StateFilter(default_state))
+async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
     voice: Voice | None = message.voice
     if not voice:
         return
@@ -33,4 +36,4 @@ async def handle_voice(message: Message, bot: Bot) -> None:
         return
 
     logger.info("Транскрипция: %s", text)
-    await process_transaction(message, text)
+    await process_transaction(message, text, state)

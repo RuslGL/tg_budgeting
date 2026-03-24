@@ -1,15 +1,23 @@
 import logging
+import time
 
 from aiogram import Router
+from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import default_state
 from aiogram.types import Message
 
+from bot.handlers.clarification import build_categories_keyboard
+from bot.states import Form
 from services import llm, sheets
 
 router = Router()
 logger = logging.getLogger(__name__)
 
+TIMEOUT = 300  # 5 minutes
 
-async def process_transaction(message: Message, text: str) -> None:
+
+async def process_transaction(message: Message, text: str, state: FSMContext) -> None:
     try:
         categories = sheets.get_categories()
         parsed = await llm.parse_transaction(text, categories)
@@ -23,8 +31,43 @@ async def process_transaction(message: Message, text: str) -> None:
     date = parsed.get("date")
     missing = parsed.get("missing", [])
 
-    if not amount or "amount" in missing:
+    amount_missing = not amount or "amount" in missing
+    category_missing = category == "unknown"
+
+    if amount_missing and category_missing:
+        await message.answer(
+            "Не удалось определить сумму и категорию. Опиши операцию подробнее."
+        )
+        return
+
+    expires_at = time.time() + TIMEOUT
+
+    if amount_missing:
+        await state.set_state(Form.clarifying_amount)
+        await state.set_data({
+            "category": category,
+            "date": date,
+            "original_text": text,
+            "attempts": 0,
+            "expires_at": expires_at,
+        })
         await message.answer("Не удалось определить сумму. Укажи сумму операции.")
+        return
+
+    if category_missing:
+        await state.set_state(Form.clarifying_category)
+        await state.set_data({
+            "amount": amount,
+            "date": date,
+            "original_text": text,
+            "attempts": 0,
+            "expires_at": expires_at,
+        })
+        kb = build_categories_keyboard(categories)
+        await message.answer(
+            "Не удалось определить категорию. Уточни голосом или выбери из списка:",
+            reply_markup=kb,
+        )
         return
 
     try:
@@ -37,9 +80,9 @@ async def process_transaction(message: Message, text: str) -> None:
     await message.answer("Внесено.")
 
 
-@router.message()
-async def handle_text(message: Message) -> None:
+@router.message(StateFilter(default_state))
+async def handle_text(message: Message, state: FSMContext) -> None:
     text = message.text
     if not text or text.startswith("/"):
         return
-    await process_transaction(message, text)
+    await process_transaction(message, text, state)
