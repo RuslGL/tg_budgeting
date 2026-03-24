@@ -40,9 +40,4 @@ async def handle_text(message: Message) -> None:
         await message.answer("Не удалось записать в таблицу. Попробуй ещё раз.")
         return
 
-    await message.answer(
-        f"Записано:\n"
-        f"Дата: {date}\n"
-        f"Категория: {category}\n"
-        f"Сумма: {amount}"
-    )
+    await message.answer("Внесено.")
