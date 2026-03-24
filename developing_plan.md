@@ -113,12 +113,18 @@ tg_budgeting/
 
 ---
 
-## Step 10 — Dashboard setup (manual, one-time)
-- [ ] Create "Dashboard" tab in Google Sheets
-- [ ] Insert bar chart: Income vs Expenses by month (from Transactions data)
-- [ ] Insert pie chart: Category breakdown (SUMIF formulas)
-- [ ] Insert yearly summary table
-- [ ] Verify charts auto-update as new rows are added
+## Step 10 — React dashboard with SQLite sync ✅ DONE
+- [x] `dashboard/api/sync.py` — Sheets → SQLite, hourly; перезаписывает только текущий и предыдущий месяц, старую историю не трогает
+- [x] `dashboard/api/db.py` — SQLite чтение: список месяцев, расходы по категориям за месяц и год
+- [x] `dashboard/api/main.py` — FastAPI: отдаёт React статику + эндпоинты под `DASHBOARD_SECRET`
+  - `GET /d/{secret}/api/months`
+  - `GET /d/{secret}/api/month?year=&month=`
+  - `GET /d/{secret}/api/year?year=`
+- [x] `dashboard/frontend/` — React + Vite: раздельный выбор года/месяца, два pie chart (recharts), финтех-тема
+- [x] `dashboard/Dockerfile` — multi-stage: Node build → Python runtime
+- [x] Добавить `dashboard` сервис в `docker-compose.yml`
+- [x] Добавить `DASHBOARD_SECRET` в `.env` и `.env.example`
+- [x] SQLite схема: `date, category, type, amount`
 
 ---
 
