@@ -1,2 +1,5 @@
 # tg_budgeting
-Telegram app for corporate budget control
+
+An application for controlling corporate budgeting.
+
+Built with Telegram Bot API.
