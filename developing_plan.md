@@ -83,12 +83,13 @@ tg_budgeting/
 
 ---
 
-## Step 7 — LLM transaction parsing
-- [ ] `services/llm.py` — `async def parse_transaction(text, categories, context) -> dict`
-- [ ] Use GPT-4o-mini with function calling / structured output
-- [ ] Schema: `{ amount, type, category, date, description, missing_fields[], clarifying_question? }`
-- [ ] System prompt in Russian; pass available categories for matching
-- [ ] **Test:** send "потратил 3000 на обед", verify parsed JSON
+## Step 7 — LLM transaction parsing ✅ DONE
+- [x] `services/llm.py` — `async def parse_transaction(text, categories) -> dict`
+- [x] GPT-4o-mini with JSON response format
+- [x] Schema: `{ amount, category, date, missing[] }`
+- [x] System prompt in Russian; pass available categories for matching
+- [x] Strict category matching — "unknown" if no clear match
+- [x] Date parsing: supports "вчера", "позавчера", explicit dates
 
 ---
 
@@ -103,12 +104,12 @@ tg_budgeting/
 
 ---
 
-## Step 9 — Google Sheets integration
-- [ ] `services/sheets.py` — service account auth via `gspread`
-- [ ] `get_categories()` — read Categories tab, cache 10 min
-- [ ] `append_transaction(row)` — append to Transactions tab
-  - Columns: `Date | Type | Category | Amount | Description | Source | Added by`
-- [ ] **Test:** full flow → verify row in Google Sheets
+## Step 9 — Google Sheets integration ✅ DONE
+- [x] `services/sheets.py` — service account auth via `gspread`
+- [x] `get_categories()` — read "categories" tab, cache 10 min
+- [x] `append_transaction(date, category, amount, original_text)` — append to "raw" tab
+  - Columns: `date | cat | sum | original text`
+- [x] **Test:** full flow → verify row in Google Sheets
 
 ---
 
