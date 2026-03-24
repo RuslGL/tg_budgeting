@@ -1,7 +1,6 @@
 import logging
 
 from aiogram import Router
-from aiogram.filters import Command
 from aiogram.types import Message
 
 from services import llm, sheets
@@ -10,12 +9,7 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 
-@router.message()
-async def handle_text(message: Message) -> None:
-    text = message.text
-    if not text or text.startswith("/"):
-        return
-
+async def process_transaction(message: Message, text: str) -> None:
     try:
         categories = sheets.get_categories()
         parsed = await llm.parse_transaction(text, categories)
@@ -41,3 +35,11 @@ async def handle_text(message: Message) -> None:
         return
 
     await message.answer("Внесено.")
+
+
+@router.message()
+async def handle_text(message: Message) -> None:
+    text = message.text
+    if not text or text.startswith("/"):
+        return
+    await process_transaction(message, text)

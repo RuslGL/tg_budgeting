@@ -75,10 +75,11 @@ tg_budgeting/
 
 ---
 
-## Step 6 — Voice transcription
-- [ ] `services/transcription.py` — `async def transcribe(file_bytes: bytes) -> str` via OpenAI Whisper
-- [ ] `bot/handlers/voice.py` — download OGG from Telegram, call transcribe, log result
-- [ ] **Test:** send Russian voice note, verify transcribed text in logs
+## Step 6 — Voice transcription ✅ DONE
+- [x] `services/transcription.py` — `async def transcribe(file_bytes: bytes) -> str` via OpenAI Whisper
+- [x] `bot/handlers/voice.py` — download OGG from Telegram, call transcribe, pass to process_transaction
+- [x] Shared `process_transaction` logic extracted to `text.py` and reused by voice handler
+- [x] **Test:** send Russian voice note, verify transcribed text in logs
 
 ---
 
