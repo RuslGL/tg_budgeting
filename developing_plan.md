@@ -67,11 +67,11 @@ tg_budgeting/
 
 ---
 
-## Step 5 — Auth middleware
-- [ ] `bot/middlewares/auth.py` — `BaseMiddleware` checking `message.from_user.id`
-- [ ] Silently ignore messages from users not in `ALLOWED_USERS`
-- [ ] Register middleware before all handlers
-- [ ] **Test:** unknown user → bot ignores; allowed user → bot responds
+## Step 5 — Auth middleware ✅ DONE
+- [x] `bot/middlewares/auth.py` — `BaseMiddleware` checking `message.from_user.id`
+- [x] Silently ignore messages from users not in `ALLOWED_USERS`
+- [x] Register middleware before all handlers
+- [x] **Test:** unknown user → bot ignores; allowed user → bot responds
 
 ---
 
