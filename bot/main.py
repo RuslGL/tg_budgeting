@@ -4,7 +4,7 @@ import logging
 from aiogram import Bot, Dispatcher
 
 import config
-from bot.handlers import commands
+from bot.handlers import commands, text
 
 logging.basicConfig(level=config.LOG_LEVEL)
 
@@ -14,6 +14,7 @@ async def main() -> None:
     dp = Dispatcher()
 
     dp.include_router(commands.router)
+    dp.include_router(text.router)
 
     await dp.start_polling(bot)
 

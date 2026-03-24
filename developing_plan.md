@@ -59,11 +59,11 @@ tg_budgeting/
 
 ---
 
-## Step 4 — Telegram bot skeleton
-- [ ] `bot/main.py` — create `Bot`, `Dispatcher`, start polling
-- [ ] `bot/handlers/commands.py` — `/start` and `/help` in Russian
-- [ ] Register commands router in dispatcher
-- [ ] **Test:** bot responds to `/start`
+## Step 4 — Telegram bot skeleton ✅ DONE
+- [x] `bot/main.py` — create `Bot`, `Dispatcher`, start polling
+- [x] `bot/handlers/commands.py` — `/start` and `/help` in Russian
+- [x] Register commands router in dispatcher
+- [x] **Test:** bot responds to `/start`
 
 ---
 
@@ -95,7 +95,7 @@ tg_budgeting/
 - [ ] `bot/states.py` — define `Form.clarifying` state
 - [ ] On incomplete parse: send `clarifying_question`, enter FSM state, store partial data
 - [ ] Next message re-parsed with accumulated context
-- [ ] Max 3 clarification rounds; on failure → ask user to rephrase
+- [ ] Max 3 clarification rounds; on failure → write `unknown` to category field and save anyway
 - [ ] **Test:** send "купил продукты" (no amount) → bot asks → user answers → complete
 
 ---
