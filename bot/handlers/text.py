@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import Message
 
-from bot.handlers.clarification import build_categories_keyboard
+from bot.handlers.clarification import build_categories_keyboard, _confirmed
 from bot.states import Form
 from services import llm, sheets
 
@@ -81,7 +81,7 @@ async def process_transaction(message: Message, text: str, state: FSMContext) ->
         await message.answer("Не удалось записать в таблицу. Попробуй ещё раз.")
         return
 
-    await message.answer("Внесено.")
+    await message.answer(_confirmed(date, amount, category))
 
 
 @router.message(StateFilter(default_state))

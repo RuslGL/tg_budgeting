@@ -36,6 +36,11 @@ def build_categories_keyboard(categories: list[str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def _confirmed(date: str, amount: float, category: str) -> str:
+    amount_str = f"{int(amount):,}".replace(",", " ") if float(amount) == int(amount) else str(amount)
+    return f"Внесено:\n{date}\n{amount_str}\n{category}"
+
+
 async def _extract_text(message: Message, bot: Bot) -> str | None:
     if message.text:
         return message.text
@@ -71,12 +76,15 @@ async def handle_clarify_amount(message: Message, state: FSMContext, bot: Bot) -
         return
 
     try:
-        parsed = await llm.parse_transaction(text, [])
+        categories = sheets.get_categories()
+        parsed = await llm.parse_transaction(text, categories)
     except openai.RateLimitError:
         await state.clear()
         await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
         return
+
     amount = parsed.get("amount")
+    new_category = parsed.get("category")
 
     if not amount:
         attempts = data.get("attempts", 0) + 1
@@ -91,8 +99,18 @@ async def handle_clarify_amount(message: Message, state: FSMContext, bot: Bot) -
         )
         return
 
+    # If user provided a full new message with both amount and category — use new data entirely
+    if new_category and new_category != "unknown":
+        date = parsed.get("date") or data["date"]
+        category = new_category
+        original = text
+    else:
+        date = data["date"]
+        category = data["category"]
+        original = data["original_text"]
+
     try:
-        sheets.append_transaction(data["date"], data["category"], amount, data["original_text"])
+        sheets.append_transaction(date, category, amount, original)
     except Exception as e:
         logger.error("Ошибка записи: %s", e)
         await state.clear()
@@ -100,7 +118,7 @@ async def handle_clarify_amount(message: Message, state: FSMContext, bot: Bot) -
         return
 
     await state.clear()
-    await message.answer("Внесено.")
+    await message.answer(_confirmed(date, amount, category))
 
 
 @router.message(Form.clarifying_category)
@@ -129,22 +147,25 @@ async def handle_clarify_category(message: Message, state: FSMContext, bot: Bot)
         await state.clear()
         await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
         return
+
     category = parsed.get("category")
+    new_amount = parsed.get("amount")
 
     if not category or category == "unknown":
         attempts = data.get("attempts", 0) + 1
         if attempts >= MAX_ATTEMPTS:
+            date = data["date"]
+            amount = data["amount"]
+            original = data["original_text"]
             try:
-                sheets.append_transaction(
-                    data["date"], "unknown", data["amount"], data["original_text"]
-                )
+                sheets.append_transaction(date, "unknown", amount, original)
             except Exception as e:
                 logger.error("Ошибка записи: %s", e)
                 await state.clear()
                 await message.answer("Не удалось записать в таблицу. Попробуй ещё раз.")
                 return
             await state.clear()
-            await message.answer("Внесено с категорией unknown.")
+            await message.answer(_confirmed(date, amount, "unknown"))
             return
         await state.update_data(attempts=attempts)
         kb = build_categories_keyboard(categories)
@@ -155,8 +176,18 @@ async def handle_clarify_category(message: Message, state: FSMContext, bot: Bot)
         )
         return
 
+    # If user provided a full new message with both category and amount — use new data entirely
+    if new_amount:
+        date = parsed.get("date") or data["date"]
+        amount = new_amount
+        original = text
+    else:
+        date = data["date"]
+        amount = data["amount"]
+        original = data["original_text"]
+
     try:
-        sheets.append_transaction(data["date"], category, data["amount"], data["original_text"])
+        sheets.append_transaction(date, category, amount, original)
     except Exception as e:
         logger.error("Ошибка записи: %s", e)
         await state.clear()
@@ -164,7 +195,7 @@ async def handle_clarify_category(message: Message, state: FSMContext, bot: Bot)
         return
 
     await state.clear()
-    await message.answer("Внесено.")
+    await message.answer(_confirmed(date, amount, category))
 
 
 @router.callback_query(Form.clarifying_category, F.data.startswith("cat:"))
@@ -178,11 +209,11 @@ async def handle_category_callback(callback: CallbackQuery, state: FSMContext) -
         return
 
     category = callback.data.removeprefix("cat:")
+    date = data["date"]
+    amount = data["amount"]
 
     try:
-        sheets.append_transaction(
-            data["date"], category, data["amount"], data["original_text"]
-        )
+        sheets.append_transaction(date, category, amount, data["original_text"])
     except Exception as e:
         logger.error("Ошибка записи: %s", e)
         await state.clear()
@@ -191,5 +222,5 @@ async def handle_category_callback(callback: CallbackQuery, state: FSMContext) -
         return
 
     await state.clear()
-    await callback.message.answer("Внесено.")
+    await callback.message.answer(_confirmed(date, amount, category))
     await callback.answer()
