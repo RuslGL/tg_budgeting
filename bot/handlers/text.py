@@ -1,6 +1,7 @@
 import logging
 import time
 
+import openai
 from aiogram import Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -21,6 +22,9 @@ async def process_transaction(message: Message, text: str, state: FSMContext) ->
     try:
         categories = sheets.get_categories()
         parsed = await llm.parse_transaction(text, categories)
+    except openai.RateLimitError:
+        await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
+        return
     except Exception as e:
         logger.error("Ошибка при парсинге: %s", e)
         await message.answer("Не удалось обработать сообщение. Попробуй ещё раз.")

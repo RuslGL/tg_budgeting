@@ -1,6 +1,7 @@
 import logging
 import time
 
+import openai
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
@@ -43,6 +44,8 @@ async def _extract_text(message: Message, bot: Bot) -> str | None:
             file = await bot.get_file(message.voice.file_id)
             buffer = await bot.download_file(file.file_path)
             return await transcription.transcribe(buffer.read())
+        except openai.RateLimitError:
+            raise
         except Exception as e:
             logger.error("Ошибка транскрипции в уточнении: %s", e)
     return None
@@ -57,12 +60,22 @@ async def handle_clarify_amount(message: Message, state: FSMContext, bot: Bot) -
         await message.answer("Время вышло. Отправь сообщение заново.")
         return
 
-    text = await _extract_text(message, bot)
+    try:
+        text = await _extract_text(message, bot)
+    except openai.RateLimitError:
+        await state.clear()
+        await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
+        return
     if not text:
         await message.answer("Отправь текст или голосовое с суммой.")
         return
 
-    parsed = await llm.parse_transaction(text, [])
+    try:
+        parsed = await llm.parse_transaction(text, [])
+    except openai.RateLimitError:
+        await state.clear()
+        await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
+        return
     amount = parsed.get("amount")
 
     if not amount:
@@ -99,13 +112,23 @@ async def handle_clarify_category(message: Message, state: FSMContext, bot: Bot)
         await message.answer("Время вышло. Отправь сообщение заново.")
         return
 
-    text = await _extract_text(message, bot)
+    try:
+        text = await _extract_text(message, bot)
+    except openai.RateLimitError:
+        await state.clear()
+        await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
+        return
     if not text:
         await message.answer("Отправь текст или голосовое с категорией.")
         return
 
     categories = sheets.get_categories()
-    parsed = await llm.parse_transaction(text, categories)
+    try:
+        parsed = await llm.parse_transaction(text, categories)
+    except openai.RateLimitError:
+        await state.clear()
+        await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
+        return
     category = parsed.get("category")
 
     if not category or category == "unknown":

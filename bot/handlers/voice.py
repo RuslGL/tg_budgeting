@@ -1,5 +1,6 @@
 import logging
 
+import openai
 from aiogram import Bot, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -30,6 +31,9 @@ async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
 
     try:
         text = await transcription.transcribe(file_bytes)
+    except openai.RateLimitError:
+        await message.answer("На аккаунте OpenAI закончились средства. Обратись к администратору.")
+        return
     except Exception as e:
         logger.error("Ошибка транскрипции: %s", e)
         await message.answer("Не удалось распознать речь. Попробуй ещё раз.")
