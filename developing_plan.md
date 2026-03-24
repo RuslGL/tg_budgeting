@@ -39,9 +39,10 @@ tg_budgeting/
 
 ---
 
-## Step 2 — Docker Compose
-- [ ] Write `Dockerfile` (Python 3.11-slim, install deps, run bot)
-- [ ] Write `docker-compose.yml` (single `bot` service, mount `.env` + credentials, restart `unless-stopped`)
+## Step 2 — Docker Compose ✅ DONE
+- [x] Write `Dockerfile` (Python 3.11-slim, install deps, run bot)
+- [x] Write `docker-compose.yml` (single `bot` service, env_file `.env`, restart `unless-stopped`)
+- Note: all credentials including Google service account JSON stored in `.env` as a single-line string
 
 ---
 
