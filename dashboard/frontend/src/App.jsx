@@ -89,9 +89,10 @@ const S = {
   },
 }
 
-const CustomTooltip = ({ active, payload }) => {
+const CustomTooltip = ({ active, payload, total }) => {
   if (!active || !payload?.length) return null
   const { name, value } = payload[0]
+  const pct = total > 0 ? (value / total * 100).toFixed(1) + '%' : null
   return (
     <div style={{
       background: '#0f172a',
@@ -101,7 +102,8 @@ const CustomTooltip = ({ active, payload }) => {
       fontSize: 13,
     }}>
       <div style={{ color: '#94a3b8', marginBottom: 4 }}>{name}</div>
-      <div style={{ color: '#f1f5f9', fontWeight: 700 }}>{fmt(value)}</div>
+      <div style={{ color: '#f1f5f9', fontWeight: 700 }}>{fmt(value)} руб</div>
+      {pct && <div style={{ color: '#64748b', marginTop: 2 }}>{pct}</div>}
     </div>
   )
 }
@@ -169,7 +171,7 @@ function PieCard({ title, subtitle, data, showYearTotals }) {
                   <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="transparent" />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} total={yearExpense} />} />
               <Legend content={<CustomLegend />} />
             </PieChart>
           </ResponsiveContainer>
@@ -236,6 +238,7 @@ function BarCard({ title, subtitle, data }) {
           />
           <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={v => fmt(v)} width={60} />
           <Tooltip
+            cursor={false}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null
               return (
