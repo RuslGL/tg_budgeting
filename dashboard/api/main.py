@@ -61,30 +61,30 @@ async def index(secret: str):
 
 
 @app.get("/d/{secret}/api/months")
-async def months(secret: str):
+async def months(secret: str, company: str = "family"):
     _check(secret)
-    return db.get_months()
+    return db.get_months(company)
 
 
 @app.get("/d/{secret}/api/month")
-async def month(secret: str, year: int, month: int):
+async def month(secret: str, year: int, month: int, company: str = "family"):
     _check(secret)
-    return db.get_month_data(year, month)
+    return db.get_month_data(year, month, company)
 
 
 @app.get("/d/{secret}/api/year")
-async def year(secret: str, year: int):
+async def year(secret: str, year: int, company: str = "family"):
     _check(secret)
-    return db.get_year_data(year)
+    return db.get_year_data(year, company)
 
 
 @app.get("/d/{secret}/api/month/by-author")
-async def month_by_author(secret: str, year: int, month: int):
+async def month_by_author(secret: str, year: int, month: int, company: str = "family"):
     _check(secret)
-    return db.get_month_by_author(year, month)
+    return db.get_month_by_author(year, month, company)
 
 
 @app.get("/d/{secret}/api/year/by-author")
-async def year_by_author(secret: str, year: int):
+async def year_by_author(secret: str, year: int, company: str = "family"):
     _check(secret)
-    return db.get_year_by_author(year)
+    return db.get_year_by_author(year, company)

@@ -46,9 +46,9 @@ const S = {
     letterSpacing: '1px',
   },
   select: {
-    background: '#1e293b',
-    border: '1px solid #334155',
-    color: '#f1f5f9',
+    background: '#3b82f6',
+    border: 'none',
+    color: '#ffffff',
     fontSize: 14,
     padding: '8px 12px',
     borderRadius: 8,
@@ -264,6 +264,7 @@ function BarCard({ title, subtitle, data }) {
 }
 
 export default function App() {
+  const [company, setCompany] = useState('family')
   const [months, setMonths] = useState([])
   const [selectedYear, setSelectedYear] = useState(null)
   const [selectedMonth, setSelectedMonth] = useState(null)
@@ -273,16 +274,19 @@ export default function App() {
   const [yearByAuthor, setYearByAuthor] = useState([])
 
   useEffect(() => {
-    fetch(`${API_BASE}/months`)
+    fetch(`${API_BASE}/months?company=${company}`)
       .then(r => r.json())
       .then(ms => {
         setMonths(ms)
         if (ms.length > 0) {
           setSelectedYear(ms[0].year)
           setSelectedMonth(ms[0].month)
+        } else {
+          setSelectedYear(null)
+          setSelectedMonth(null)
         }
       })
-  }, [])
+  }, [company])
 
   // available years from data
   const years = [...new Set(months.map(m => m.year))].sort((a, b) => b - a)
@@ -303,23 +307,23 @@ export default function App() {
 
   useEffect(() => {
     if (!selectedYear || !selectedMonth) return
-    fetch(`${API_BASE}/month?year=${selectedYear}&month=${selectedMonth}`)
+    fetch(`${API_BASE}/month?year=${selectedYear}&month=${selectedMonth}&company=${company}`)
       .then(r => r.json())
       .then(setMonthData)
-    fetch(`${API_BASE}/month/by-author?year=${selectedYear}&month=${selectedMonth}`)
+    fetch(`${API_BASE}/month/by-author?year=${selectedYear}&month=${selectedMonth}&company=${company}`)
       .then(r => r.json())
       .then(setMonthByAuthor)
-  }, [selectedYear, selectedMonth])
+  }, [selectedYear, selectedMonth, company])
 
   useEffect(() => {
     if (!selectedYear) return
-    fetch(`${API_BASE}/year?year=${selectedYear}`)
+    fetch(`${API_BASE}/year?year=${selectedYear}&company=${company}`)
       .then(r => r.json())
       .then(setYearData)
-    fetch(`${API_BASE}/year/by-author?year=${selectedYear}`)
+    fetch(`${API_BASE}/year/by-author?year=${selectedYear}&company=${company}`)
       .then(r => r.json())
       .then(setYearByAuthor)
-  }, [selectedYear])
+  }, [selectedYear, company])
 
   const monthLabel = selectedYear && selectedMonth
     ? `${MONTHS_RU[selectedMonth - 1]} ${selectedYear}`
@@ -328,8 +332,15 @@ export default function App() {
   return (
     <div style={S.app}>
       <div style={S.header}>
-        <div style={S.logo}>БЮДЖЕТ</div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <select
+          style={{ ...S.select, fontSize: 20, fontWeight: 700, letterSpacing: '1px' }}
+          value={company}
+          onChange={e => setCompany(e.target.value)}
+        >
+          <option value="family">БЮДЖЕТ СЕМЕЙНЫЙ</option>
+          <option value="business">БЮДЖЕТ БИЗНЕС</option>
+        </select>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <select
             style={S.select}
             value={selectedYear || ''}

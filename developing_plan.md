@@ -106,25 +106,43 @@ tg_budgeting/
 
 ## Step 9 — Google Sheets integration ✅ DONE
 - [x] `services/sheets.py` — service account auth via `gspread`
-- [x] `get_categories()` — read "categories" tab, cache 10 min
-- [x] `append_transaction(date, category, amount, original_text)` — append to "raw" tab
-  - Columns: `date | cat | sum | original text`
+- [x] `get_categories()` — reads sheet from `CATEGORIES_SHEET` env var, cache 10 min
+- [x] `append_transaction(date, category, amount, original_text, author, company)` — append to "raw" tab
+  - Columns: `date | category | type | amount | original text | author | company`
 - [x] **Test:** full flow → verify row in Google Sheets
 
 ---
 
 ## Step 10 — React dashboard with SQLite sync ✅ DONE
-- [x] `dashboard/api/sync.py` — Sheets → SQLite, hourly; перезаписывает только текущий и предыдущий месяц, старую историю не трогает
-- [x] `dashboard/api/db.py` — SQLite чтение: список месяцев, расходы по категориям за месяц и год
-- [x] `dashboard/api/main.py` — FastAPI: отдаёт React статику + эндпоинты под `DASHBOARD_SECRET`
-  - `GET /d/{secret}/api/months`
-  - `GET /d/{secret}/api/month?year=&month=`
-  - `GET /d/{secret}/api/year?year=`
-- [x] `dashboard/frontend/` — React + Vite: раздельный выбор года/месяца, два pie chart (recharts), финтех-тема
+- [x] `dashboard/api/sync.py` — Sheets → SQLite, hourly; rewrites only current + previous month, history untouched
+- [x] `dashboard/api/db.py` — SQLite reads: months list, category breakdown by month/year, by-author breakdown; all queries filtered by `company`
+- [x] `dashboard/api/main.py` — FastAPI: serves React static + endpoints under `DASHBOARD_SECRET`
+  - `GET /d/{secret}/api/months?company=`
+  - `GET /d/{secret}/api/month?year=&month=&company=`
+  - `GET /d/{secret}/api/year?year=&company=`
+  - `GET /d/{secret}/api/month/by-author?year=&month=&company=`
+  - `GET /d/{secret}/api/year/by-author?year=&company=`
+- [x] `dashboard/frontend/` — React + Vite, dark fintech theme:
+  - Dropdown selector: "БЮДЖЕТ СЕМЕЙНЫЙ" / "БЮДЖЕТ БИЗНЕС" (filters all data by company)
+  - Separate year / month selectors
+  - Two pie charts (month + year) with stats (доход / расходы / разница) and category table
+  - Two bar charts (month + year) showing expense breakdown by author
 - [x] `dashboard/Dockerfile` — multi-stage: Node build → Python runtime
-- [x] Добавить `dashboard` сервис в `docker-compose.yml`
-- [x] Добавить `DASHBOARD_SECRET` в `.env` и `.env.example`
-- [x] SQLite схема: `date, category, type, amount`
+- [x] `dashboard` service added to `docker-compose.yml`, port 8080
+- [x] `DASHBOARD_SECRET` added to `.env` and `.env.example`
+- [x] SQLite schema: `date, category, type, amount, author, company`
+
+---
+
+## Step 10a — Second bot and multi-company support ✅ DONE
+- [x] `bot_corp_main.py` — entry point for second bot, reuses all handlers from `bot/`
+- [x] `docker-compose.yml` — `bot_corp` service: `BOT_TOKEN_CORP`, `COMPANY=business`, `CATEGORIES_SHEET=corp_categories`
+- [x] `config.py` — added `COMPANY`, `CATEGORIES_SHEET`, `USER_NAMES` (maps Telegram ID → display name)
+- [x] `services/sheets.py` — `CATEGORIES_SHEET` is now configurable; `author` and `company` written to raw sheet
+- [x] `bot/handlers/text.py` — reads `author` from `USER_NAMES`, `company` from `COMPANY`; stores both in FSM state
+- [x] `bot/handlers/clarification.py` — all append_transaction calls pass `author` and `company` from FSM state
+- [x] `bot/handlers/voice.py` — fixed: added `F.voice` filter so voice handler no longer intercepts text messages
+- [x] `.env.example` — added `BOT_TOKEN_CORP`, `USERS_NAME`
 
 ---
 

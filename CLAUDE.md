@@ -28,10 +28,16 @@
 - Google Sheets: `gspread` + `google-auth` (service account)
 - Config: `python-dotenv`
 - Runtime: Python 3.11+, async
+- Dashboard: FastAPI + SQLite + React/Vite + recharts, multi-stage Docker build
 
 ## Architecture decisions (settled)
 
-- Diagrams live in a dedicated Google Sheets "Dashboard" tab as native charts — no bot-side chart generation.
+- Two bots: `bot` (family) and `bot_corp` (business), same codebase, different env vars per docker-compose service.
+- `bot_corp_main.py` is the entry point for the second bot; it reuses all handlers from `bot/`.
+- Google Sheets `raw` tab columns: `date | category | type | amount | original_text | author | company`.
+- `categories` sheet for family bot, `corp_categories` sheet for business bot (set via `CATEGORIES_SHEET` env var).
+- `USERS_NAME` env var maps `ALLOWED_USERS` order to display names (comma-separated, same order).
+- Dashboard SQLite is synced hourly from Sheets; only current + previous month are rewritten, older history is untouched.
+- Dashboard filtered by `company` query param on all endpoints; frontend has "БЮДЖЕТ СЕМЕЙНЫЙ / БЮДЖЕТ БИЗНЕС" dropdown.
 - Allowed users are stored as comma-separated Telegram numeric user IDs in `.env` under `ALLOWED_USERS`.
-- No database — Google Sheets is the sole data store.
 - Deployment: VPS with long-polling (`docker compose up -d`).
