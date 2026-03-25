@@ -23,9 +23,14 @@ def init_db() -> None:
                 date TEXT NOT NULL,
                 category TEXT NOT NULL,
                 type TEXT NOT NULL,
-                amount REAL NOT NULL
+                amount REAL NOT NULL,
+                author TEXT NOT NULL DEFAULT ''
             )
         """)
+        try:
+            conn.execute("ALTER TABLE transactions ADD COLUMN author TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # column already exists
         conn.commit()
 
 
@@ -49,18 +54,19 @@ def run_sync() -> int:
         if len(row) < 4:
             continue
         d, category, type_, amount_str = row[0], row[1], row[2], row[3]
+        author = row[5] if len(row) > 5 else ""
         if not d or d < cutoff:
             continue
         try:
             amount = float(amount_str)
         except ValueError:
             continue
-        fresh.append((d, category, type_, amount))
+        fresh.append((d, category, type_, amount, author))
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("DELETE FROM transactions WHERE date >= ?", (cutoff,))
         conn.executemany(
-            "INSERT INTO transactions (date, category, type, amount) VALUES (?, ?, ?, ?)",
+            "INSERT INTO transactions (date, category, type, amount, author) VALUES (?, ?, ?, ?, ?)",
             fresh,
         )
         conn.commit()

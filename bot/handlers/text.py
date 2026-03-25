@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import Message
 
+import config
 from bot.handlers.clarification import build_categories_keyboard, _confirmed
 from bot.states import Form
 from services import llm, sheets
@@ -19,6 +20,7 @@ TIMEOUT = 300  # 5 minutes
 
 
 async def process_transaction(message: Message, text: str, state: FSMContext) -> None:
+    logger.info("PROCESS: user_id=%s | text=%s", message.from_user.id, text)
     try:
         categories = sheets.get_categories()
         parsed = await llm.parse_transaction(text, categories)
@@ -38,6 +40,9 @@ async def process_transaction(message: Message, text: str, state: FSMContext) ->
     amount_missing = not amount or "amount" in missing
     category_missing = category == "unknown"
 
+    author = config.USER_NAMES.get(message.from_user.id, "")
+    company = config.COMPANY
+
     if amount_missing and category_missing:
         await message.answer(
             "Не удалось определить сумму и категорию. Опиши операцию подробнее."
@@ -52,6 +57,8 @@ async def process_transaction(message: Message, text: str, state: FSMContext) ->
             "category": category,
             "date": date,
             "original_text": text,
+            "author": author,
+            "company": company,
             "attempts": 0,
             "expires_at": expires_at,
         })
@@ -64,6 +71,8 @@ async def process_transaction(message: Message, text: str, state: FSMContext) ->
             "amount": amount,
             "date": date,
             "original_text": text,
+            "author": author,
+            "company": company,
             "attempts": 0,
             "expires_at": expires_at,
         })
@@ -74,8 +83,9 @@ async def process_transaction(message: Message, text: str, state: FSMContext) ->
         )
         return
 
+    logger.info("APPEND: date=%s | category=%s | amount=%s | author=%s | company=%s", date, category, amount, author, company)
     try:
-        sheets.append_transaction(date, category, amount, text)
+        sheets.append_transaction(date, category, amount, text, author, company)
     except Exception as e:
         logger.error("Ошибка при записи в таблицу: %s", e)
         await message.answer("Не удалось записать в таблицу. Попробуй ещё раз.")

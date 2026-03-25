@@ -27,7 +27,7 @@ def _refresh_categories() -> None:
     global _categories_cache, _category_types, _categories_cached_at
     client = _get_client()
     sheet = client.open_by_key(config.SPREADSHEET_ID)
-    ws = sheet.worksheet("categories")
+    ws = sheet.worksheet(config.CATEGORIES_SHEET)
     rows = ws.get_all_values()
     # First row is header: categorie, type
     _categories_cache = []
@@ -56,9 +56,9 @@ def get_category_type(category: str) -> str:
     return _category_types.get(category, "")
 
 
-def append_transaction(date: str, category: str, amount: float, original_text: str) -> None:
+def append_transaction(date: str, category: str, amount: float, original_text: str, author: str = "", company: str = "") -> None:
     type_ = get_category_type(category)
     client = _get_client()
     sheet = client.open_by_key(config.SPREADSHEET_ID)
     ws = sheet.worksheet("raw")
-    ws.append_row([date, category, type_, amount, original_text])
+    ws.append_row([date, category, type_, amount, original_text, author, company])

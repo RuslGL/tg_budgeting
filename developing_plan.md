@@ -140,7 +140,8 @@ tg_budgeting/
 
 ## Step 12 — VPS deployment
 - [ ] Copy project to VPS (git clone or scp)
-- [ ] Place `.env` and `credentials.json` on server
+- [ ] Place `.env` on server
 - [ ] `docker compose up -d`
 - [ ] Smoke test from real Telegram account
 - [ ] Set up log monitoring: `docker compose logs -f`
+- [ ] Configure systemd service so docker compose restarts automatically on server reboot

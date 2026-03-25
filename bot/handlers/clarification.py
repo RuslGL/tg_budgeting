@@ -109,8 +109,10 @@ async def handle_clarify_amount(message: Message, state: FSMContext, bot: Bot) -
         category = data["category"]
         original = data["original_text"]
 
+    author = data.get("author", "")
+    company = data.get("company", "")
     try:
-        sheets.append_transaction(date, category, amount, original)
+        sheets.append_transaction(date, category, amount, original, author, company)
     except Exception as e:
         logger.error("Ошибка записи: %s", e)
         await state.clear()
@@ -157,8 +159,10 @@ async def handle_clarify_category(message: Message, state: FSMContext, bot: Bot)
             date = data["date"]
             amount = data["amount"]
             original = data["original_text"]
+            author = data.get("author", "")
+            company = data.get("company", "")
             try:
-                sheets.append_transaction(date, "unknown", amount, original)
+                sheets.append_transaction(date, "unknown", amount, original, author, company)
             except Exception as e:
                 logger.error("Ошибка записи: %s", e)
                 await state.clear()
@@ -186,8 +190,10 @@ async def handle_clarify_category(message: Message, state: FSMContext, bot: Bot)
         amount = data["amount"]
         original = data["original_text"]
 
+    author = data.get("author", "")
+    company = data.get("company", "")
     try:
-        sheets.append_transaction(date, category, amount, original)
+        sheets.append_transaction(date, category, amount, original, author, company)
     except Exception as e:
         logger.error("Ошибка записи: %s", e)
         await state.clear()
@@ -211,9 +217,11 @@ async def handle_category_callback(callback: CallbackQuery, state: FSMContext) -
     category = callback.data.removeprefix("cat:")
     date = data["date"]
     amount = data["amount"]
+    author = data.get("author", "")
+    company = data.get("company", "")
 
     try:
-        sheets.append_transaction(date, category, amount, data["original_text"])
+        sheets.append_transaction(date, category, amount, data["original_text"], author, company)
     except Exception as e:
         logger.error("Ошибка записи: %s", e)
         await state.clear()

@@ -76,3 +76,15 @@ async def month(secret: str, year: int, month: int):
 async def year(secret: str, year: int):
     _check(secret)
     return db.get_year_data(year)
+
+
+@app.get("/d/{secret}/api/month/by-author")
+async def month_by_author(secret: str, year: int, month: int):
+    _check(secret)
+    return db.get_month_by_author(year, month)
+
+
+@app.get("/d/{secret}/api/year/by-author")
+async def year_by_author(secret: str, year: int):
+    _check(secret)
+    return db.get_year_by_author(year)

@@ -16,6 +16,30 @@ def get_months() -> list[dict]:
     return [{"year": r[0], "month": r[1]} for r in rows]
 
 
+def get_month_by_author(year: int, month: int) -> list[dict]:
+    month_str = f"{year:04d}-{month:02d}"
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute("""
+            SELECT category, author, SUM(amount) AS total
+            FROM transactions
+            WHERE strftime('%Y-%m', date) = ? AND type != 'Доход'
+            GROUP BY category, author
+        """, (month_str,)).fetchall()
+    return [{"category": r[0], "author": r[1], "total": r[2]} for r in rows]
+
+
+def get_year_by_author(year: int) -> list[dict]:
+    year_str = f"{year:04d}"
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute("""
+            SELECT category, author, SUM(amount) AS total
+            FROM transactions
+            WHERE strftime('%Y', date) = ? AND type != 'Доход'
+            GROUP BY category, author
+        """, (year_str,)).fetchall()
+    return [{"category": r[0], "author": r[1], "total": r[2]} for r in rows]
+
+
 def get_year_data(year: int) -> list[dict]:
     year_str = f"{year:04d}"
     with sqlite3.connect(DB_PATH) as conn:

@@ -1,7 +1,7 @@
 import logging
 
 import openai
-from aiogram import Bot, Router
+from aiogram import Bot, F, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
@@ -14,11 +14,9 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 
-@router.message(StateFilter(default_state))
+@router.message(StateFilter(default_state), F.voice)
 async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
     voice: Voice | None = message.voice
-    if not voice:
-        return
 
     try:
         file = await bot.get_file(voice.file_id)
@@ -39,5 +37,5 @@ async def handle_voice(message: Message, bot: Bot, state: FSMContext) -> None:
         await message.answer("Не удалось распознать речь. Попробуй ещё раз.")
         return
 
-    logger.info("Транскрипция: %s", text)
+    logger.info("TRANSCRIPTION: user_id=%s | text=%s", message.from_user.id, text)
     await process_transaction(message, text, state)

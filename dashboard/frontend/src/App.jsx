@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 const COLORS = [
   '#3b82f6', '#8b5cf6', '#06b6d4', '#f59e0b', '#10b981',
@@ -150,29 +150,115 @@ function PieCard({ title, subtitle, data, showYearTotals }) {
       {chartData.length === 0 ? (
         <div style={S.empty}>Нет данных</div>
       ) : (
-        <ResponsiveContainer width="100%" height={320}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="45%"
-              outerRadius={100}
-              innerRadius={40}
-              paddingAngle={2}
-              label={({ percent }) => percent >= 0.07 ? `${(percent * 100).toFixed(0)}%` : ''}
-              labelLine={false}
-            >
-              {chartData.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="transparent" />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend content={<CustomLegend />} />
-          </PieChart>
-        </ResponsiveContainer>
+        <>
+          <ResponsiveContainer width="100%" height={320}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="45%"
+                outerRadius={100}
+                innerRadius={40}
+                paddingAngle={2}
+                label={({ percent }) => percent >= 0.07 ? `${(percent * 100).toFixed(0)}%` : ''}
+                labelLine={false}
+              >
+                {chartData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="transparent" />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend content={<CustomLegend />} />
+            </PieChart>
+          </ResponsiveContainer>
+
+          <div style={{ marginTop: 16, borderTop: '1px solid #334155', paddingTop: 12 }}>
+            {[...chartData].sort((a, b) => b.value - a.value).map((row, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '6px 0',
+                borderBottom: '1px solid #1e293b',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: '#cbd5e1' }}>{row.name}</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{fmt(row.value)}</span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
+    </div>
+  )
+}
+
+const AUTHOR_COLORS = ['#3b82f6', '#a78bfa', '#f59e0b', '#34d399']
+
+function BarCard({ title, subtitle, data }) {
+  // data: [{category, author, total}]
+  const authors = [...new Set(data.map(r => r.author))].sort()
+
+  // pivot: [{category, Author1: total, Author2: total, _sum: total}]
+  const byCategory = {}
+  for (const row of data) {
+    if (!byCategory[row.category]) byCategory[row.category] = { category: row.category, _sum: 0 }
+    byCategory[row.category][row.author] = row.total
+    byCategory[row.category]._sum += row.total
+  }
+  const chartData = Object.values(byCategory).sort((a, b) => b._sum - a._sum)
+
+  if (chartData.length === 0) return (
+    <div style={S.card}>
+      <div style={S.cardTitle}>{title}</div>
+      <div style={S.cardSubtitle}>{subtitle}</div>
+      <div style={S.empty}>Нет данных</div>
+    </div>
+  )
+
+  return (
+    <div style={S.card}>
+      <div style={S.cardTitle}>{title}</div>
+      <div style={S.cardSubtitle}>{subtitle}</div>
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 60 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" vertical={false} />
+          <XAxis
+            dataKey="category"
+            tick={{ fill: '#64748b', fontSize: 11 }}
+            angle={-35}
+            textAnchor="end"
+            interval={0}
+          />
+          <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={v => fmt(v)} width={60} />
+          <Tooltip
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null
+              return (
+                <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
+                  <div style={{ color: '#94a3b8', marginBottom: 6 }}>{label}</div>
+                  {payload.map((p, i) => (
+                    <div key={i} style={{ color: p.fill, marginBottom: 2 }}>
+                      {p.dataKey}: <strong>{fmt(p.value)}</strong>
+                    </div>
+                  ))}
+                </div>
+              )
+            }}
+          />
+          <Legend
+            wrapperStyle={{ paddingTop: 8, fontSize: 13, color: '#94a3b8' }}
+            formatter={v => <span style={{ color: '#94a3b8' }}>{v}</span>}
+          />
+          {authors.map((author, i) => (
+            <Bar key={author} dataKey={author} fill={AUTHOR_COLORS[i % AUTHOR_COLORS.length]} radius={[3, 3, 0, 0]} maxBarSize={32} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }
@@ -183,6 +269,8 @@ export default function App() {
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [monthData, setMonthData] = useState([])
   const [yearData, setYearData] = useState([])
+  const [monthByAuthor, setMonthByAuthor] = useState([])
+  const [yearByAuthor, setYearByAuthor] = useState([])
 
   useEffect(() => {
     fetch(`${API_BASE}/months`)
@@ -218,6 +306,9 @@ export default function App() {
     fetch(`${API_BASE}/month?year=${selectedYear}&month=${selectedMonth}`)
       .then(r => r.json())
       .then(setMonthData)
+    fetch(`${API_BASE}/month/by-author?year=${selectedYear}&month=${selectedMonth}`)
+      .then(r => r.json())
+      .then(setMonthByAuthor)
   }, [selectedYear, selectedMonth])
 
   useEffect(() => {
@@ -225,6 +316,9 @@ export default function App() {
     fetch(`${API_BASE}/year?year=${selectedYear}`)
       .then(r => r.json())
       .then(setYearData)
+    fetch(`${API_BASE}/year/by-author?year=${selectedYear}`)
+      .then(r => r.json())
+      .then(setYearByAuthor)
   }, [selectedYear])
 
   const monthLabel = selectedYear && selectedMonth
@@ -269,6 +363,19 @@ export default function App() {
           subtitle={String(selectedYear || '')}
           data={yearData}
           showYearTotals
+        />
+      </div>
+
+      <div style={{ ...S.chartsRow, marginTop: 16 }}>
+        <BarCard
+          title="По пользователям — месяц"
+          subtitle={monthLabel}
+          data={monthByAuthor}
+        />
+        <BarCard
+          title="По пользователям — год"
+          subtitle={String(selectedYear || '')}
+          data={yearByAuthor}
         />
       </div>
     </div>
