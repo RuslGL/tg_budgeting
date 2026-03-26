@@ -163,3 +163,70 @@ tg_budgeting/
 - [ ] Smoke test from real Telegram account
 - [ ] Set up log monitoring: `docker compose logs -f`
 - [ ] Configure systemd service so docker compose restarts automatically on server reboot
+
+---
+
+## Step 13 — Notes notebook feature ✅ DONE
+
+### 13a — Notes bot (bot_notes) ✅ DONE
+- [x] `bot/handlers/notes.py` — text + voice handler, calls `process_note()`
+- [x] `bot_notes_main.py` — entry point, registers commands.router + notes.router + AuthMiddleware
+- [x] `bot/states.py` — added `NoteForm.clarifying_category`, `NoteForm.clarifying_date`
+- [x] `services/llm.py` — added `parse_note(text, categories)` returning `{category, event_date}`
+- [x] `services/sheets.py` — added `get_note_categories()`, `append_note()`, `delete_note()`
+- [x] Categories read from "notes_categories" sheet (first column, no header, cached 10 min)
+- [x] If category unknown → inline buttons (sorted alphabetically)
+- [x] Confirmation message includes note text
+- [x] Date always = today (recording date, not event date)
+- [x] docker-compose.yml — added `bot_notes` service with `BOT_TOKEN_NOTES`
+- [x] `.env.example` — added `BOT_TOKEN_NOTES`, `NOTES_SECRET`
+
+### 13b — Notes dashboard ✅ DONE
+- [x] `dashboard/api/notes_db.py` — SQLite: `init_notes_table`, `get_notes`, `get_note_categories`, `delete_note_local`
+- [x] `dashboard/api/notes_sync.py` — full resync (DELETE all + INSERT all), every 10 seconds
+- [x] `dashboard/api/main.py` — added NOTES_SECRET, `_notes_sync_loop` (10s), `/n/{secret}` endpoints
+- [x] `dashboard/frontend/src/main.jsx` — URL routing: `/n/` → NotesApp, else → App
+- [x] `dashboard/frontend/src/NotesApp.jsx` — light theme, category pills, date range filters, note cards with colored left border by category, trash icon, optimistic delete, auto-polling every 10s
+- [x] Delete cascades: dashboard → Sheets + SQLite
+
+### 13c — Google Calendar integration ✅ DONE
+- [x] Google Calendar API enabled in Google Cloud project `tg-budgeting`
+- [x] Primary calendar shared with service account `tg-budgeting-bot@tg-budgeting.iam.gserviceaccount.com`
+- [x] `config.py` — added `GOOGLE_CALENDAR_ID`, `CALENDAR_CATEGORIES` (stored lowercase for case-insensitive match)
+- [x] `services/sheets.py` — added Calendar scope, `_create_calendar_event()`, updated `append_note()` with `event_date`
+- [x] `services/llm.py` — `parse_note()` now extracts `event_date` from message text; category assigned only if explicitly mentioned in text
+- [x] `bot/handlers/notes.py` — if category is calendar type and no date found → FSM `NoteForm.clarifying_date`
+- [x] `dashboard/api/notes_db.py` — added `calendar_event_id` column with migration
+- [x] `dashboard/api/notes_sync.py` — syncs 5 columns; `delete_note_from_sheets()` also deletes Google Calendar event
+- [x] `requirements.txt` + `dashboard/api/requirements.txt` — added `google-api-python-client`
+- [x] `.env` — added `GOOGLE_CALENDAR_ID=ruslanglotov@gmail.com`
+- [x] `.env.example` — added `GOOGLE_CALENDAR_ID`, `CALENDAR_CATEGORIES`
+- [x] Google Sheets "notes" tab: column E = `calendar_event_id` (no header row)
+
+---
+
+## Step 14 — UI polish & logging ✅ DONE
+
+### 14a — Notes dashboard redesign ✅ DONE
+- [x] `NotesApp.jsx` — dark/light theme toggle with localStorage persistence
+- [x] Dark theme: purple-blue gradient (`#1C1B2E → #16213E`), pink accents (`#E8649A`), `rgba` cards
+- [x] Light theme: `#F0F2F8` background, white cards with shadow
+- [x] Theme toggle: pill switch with moon/sun icon, purple knob (dark) / yellow knob (light)
+- [x] "Все" pill — distinct neutral grey, does not clash with category colors
+- [x] `body` background set to dark in `index.html` — no white gaps on wide screens
+- [x] `colorScheme: dark/light` on date inputs — native picker matches theme
+
+### 14b — Favicons ✅ DONE
+- [x] `dashboard/frontend/public/favicon-notes.svg` — pink notebook icon
+- [x] `dashboard/frontend/public/favicon-budget.svg` — blue/purple bar chart icon
+- [x] `docs/favicon-arch.svg` — network graph icon
+- [x] `main.jsx` — sets favicon and `document.title` based on route (`/n/` vs `/d/`)
+- [x] FastAPI `/n/{secret}` — injects `favicon-notes.svg` link into HTML before serving
+- [x] FastAPI routes for `/favicon-notes.svg` and `/favicon-budget.svg`
+- [x] `docs/architecture.html` — renamed to "TG Agents Architecture", favicon linked
+
+### 14c — Logging cleanup ✅ DONE
+- [x] `bot_notes_main.py` — suppressed `httpx` and `aiogram.event` INFO logs
+- [x] `dashboard/api/notes_sync.py` — notes sync log moved to DEBUG level
+- [x] `dashboard/api/main.py` — notes sync complete log moved to DEBUG level
+- [x] `dashboard/Dockerfile` — uvicorn `--no-access-log` to hide HTTP request lines

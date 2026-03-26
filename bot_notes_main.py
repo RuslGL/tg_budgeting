@@ -1,0 +1,28 @@
+import asyncio
+import logging
+
+from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
+
+import config
+from bot.handlers import commands
+from bot.handlers import notes
+from bot.middlewares.auth import AuthMiddleware
+
+logging.basicConfig(level=config.LOG_LEVEL)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("aiogram.event").setLevel(logging.WARNING)
+
+
+async def main() -> None:
+    bot = Bot(token=config.BOT_TOKEN)
+    dp = Dispatcher(storage=MemoryStorage())
+    dp.message.middleware(AuthMiddleware())
+    dp.callback_query.middleware(AuthMiddleware())
+    dp.include_router(commands.router)
+    dp.include_router(notes.router)
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

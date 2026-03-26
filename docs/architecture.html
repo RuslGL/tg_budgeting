@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TG Agents Architecture</title>
+  <link rel="icon" type="image/svg+xml" href="favicon-arch.svg" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      padding: 32px 24px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      color: #f1f5f9;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 36px;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #475569;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .mermaid-wrap {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* folder tree + docker table */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin-bottom: 14px;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #cbd5e1;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    pre .dim  { color: #475569; }
+    pre .new  { color: #34d399; font-weight: 600; }
+    pre .hl   { color: #60a5fa; }
+
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .services-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .services-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #475569;
+      padding: 6px 12px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .services-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+      vertical-align: top;
+    }
+
+    .services-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-blue   { background: #1e3a5f; color: #60a5fa; }
+    .badge-purple { background: #2d1b69; color: #a78bfa; }
+    .badge-green  { background: #064e3b; color: #34d399; }
+    .badge-orange { background: #431407; color: #fb923c; }
+  </style>
+</head>
+<body>
+
+  <h1>TG Agents Architecture</h1>
+  <p class="subtitle">Схема взаимодействия всех компонентов проекта</p>
+
+  <!-- FLOW DIAGRAM -->
+  <div class="section">
+    <div class="section-title">Поток данных</div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="dot" style="background:#3b82f6"></div>Telegram / Пользователи</div>
+      <div class="legend-item"><div class="dot" style="background:#8b5cf6"></div>Docker: боты</div>
+      <div class="legend-item"><div class="dot" style="background:#f59e0b"></div>Общие сервисы (services/)</div>
+      <div class="legend-item"><div class="dot" style="background:#10b981"></div>External APIs</div>
+      <div class="legend-item"><div class="dot" style="background:#f43f5e"></div>Docker: dashboard</div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart LR
+  classDef tg      fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd,rx:8
+  classDef docker  fill:#2d1b69,stroke:#8b5cf6,color:#c4b5fd,rx:8
+  classDef svc     fill:#451a03,stroke:#f59e0b,color:#fcd34d,rx:8
+  classDef ext     fill:#064e3b,stroke:#10b981,color:#6ee7b7,rx:8
+  classDef dash    fill:#4c0519,stroke:#f43f5e,color:#fda4af,rx:8
+  classDef browser fill:#0f2d1b,stroke:#22c55e,color:#86efac,rx:8
+
+  U1(["👤 User\nсемья"]):::tg
+  U2(["👤 User\nбизнес"]):::tg
+  U3(["👤 User\nзаметки"]):::tg
+  BR(["🌐 Browser"]):::browser
+
+  subgraph DC["  Docker Compose  "]
+    BOT["🤖 bot\npython -m bot.main\nCOMPANY=family"]:::docker
+    CORP["🤖 bot_corp\nbot_corp_main.py\nCOMPANY=business"]:::docker
+    NOTES["🤖 bot_notes\nbot_notes_main.py"]:::docker
+
+    subgraph SVC["  services/  "]
+      LLM["llm.py\ngpt-4o-mini"]:::svc
+      TRANS["transcription.py\nWhisper"]:::svc
+      SH["sheets.py\ngspread"]:::svc
+    end
+
+    DASH["📊 dashboard\nFastAPI :8080\nReact SPA\nSQLite /data/"]:::dash
+  end
+
+  OAI(["☁️ OpenAI API\nWhisper + GPT"]):::ext
+  GS1(["📋 Google Sheets\nraw — транзакции\ncategories\ncorp_categories"]):::ext
+  GS2(["📋 Google Sheets\nnotes\nnotes_categories"]):::ext
+  GCAL(["📅 Google Calendar\nprimary calendar"]):::ext
+
+  U1 -->|"voice / text"| BOT
+  U2 -->|"voice / text"| CORP
+  U3 -->|"voice / text"| NOTES
+
+  BOT  --> TRANS & LLM & SH
+  CORP --> TRANS & LLM & SH
+  NOTES --> TRANS & LLM & SH
+
+  TRANS & LLM --> OAI
+  SH --> GS1
+  SH --> GS2
+  SH -->|"категория Календарь"| GCAL
+
+  DASH -->|"sync каждый час"| GS1
+  DASH -->|"sync каждые 10с"| GS2
+  DASH -->|"удаление события"| GCAL
+
+  BR -->|"/d/secret — бюджет"| DASH
+  BR -->|"/n/secret — заметки"| DASH
+      </pre>
+    </div>
+  </div>
+
+  <!-- FOLDER + DOCKER TABLE -->
+  <div class="section">
+    <div class="section-title">Структура проекта и Docker-сервисы</div>
+    <div class="two-col">
+
+      <div class="card">
+        <h3>Папки и файлы</h3>
+        <pre>
+tg_budgeting/
+├── <span class="hl">bot/</span>                    <span class="dim"># общие обработчики для всех ботов</span>
+│   ├── main.py             <span class="dim"># точка входа: семейный бот</span>
+│   ├── states.py           <span class="dim"># FSM: Form + NoteForm</span>
+│   ├── handlers/
+│   │   ├── commands.py     <span class="dim"># /start /help</span>
+│   │   ├── text.py         <span class="dim"># транзакции: текст</span>
+│   │   ├── voice.py        <span class="dim"># транзакции: голос</span>
+│   │   ├── clarification.py<span class="dim"># FSM: уточнение суммы/категории</span>
+│   │   └── <span class="new">notes.py</span>        <span class="new"># НОВЫЙ: заметки</span>
+│   └── middlewares/
+│       └── auth.py         <span class="dim"># проверка ALLOWED_USERS</span>
+│
+├── bot_corp_main.py        <span class="dim"># точка входа: бизнес-бот</span>
+├── <span class="new">bot_notes_main.py</span>       <span class="new"># НОВЫЙ: бот заметок</span>
+│
+├── <span class="hl">services/</span>              <span class="dim"># переиспользуются всеми ботами</span>
+│   ├── llm.py              <span class="dim"># parse_transaction + parse_note</span>
+│   ├── sheets.py           <span class="dim"># append_transaction + append/delete_note</span>
+│   └── transcription.py    <span class="dim"># Whisper</span>
+│
+├── config.py               <span class="dim"># все env-переменные</span>
+├── Dockerfile              <span class="dim"># образ для трёх ботов</span>
+├── docker-compose.yml
+│
+└── <span class="hl">dashboard/</span>
+    ├── Dockerfile          <span class="dim"># multi-stage: Node build + Python</span>
+    └── api/
+    │   ├── main.py         <span class="dim"># FastAPI: /d/ и /n/ эндпоинты</span>
+    │   ├── db.py           <span class="dim"># SQLite: транзакции</span>
+    │   ├── sync.py         <span class="dim"># sync: raw → SQLite</span>
+    │   ├── <span class="new">notes_db.py</span>     <span class="new"># НОВЫЙ: SQLite: заметки</span>
+    │   └── <span class="new">notes_sync.py</span>   <span class="new"># НОВЫЙ: sync: notes → SQLite</span>
+    └── frontend/
+        ├── public/
+        │   ├── favicon-notes.svg   <span class="dim"># иконка заметок</span>
+        │   └── favicon-budget.svg  <span class="dim"># иконка бюджета</span>
+        └── src/
+            ├── main.jsx        <span class="dim"># роутинг /d/→App, /n/→NotesApp; favicon+title</span>
+            ├── App.jsx         <span class="dim"># дашборд бюджета (тёмная тема)</span>
+            └── NotesApp.jsx    <span class="dim"># дашборд заметок: тёмная/светлая тема, переключатель</span>
+        </pre>
+      </div>
+
+      <div class="card">
+        <h3>Docker Compose сервисы</h3>
+        <table class="services-table">
+          <thead>
+            <tr>
+              <th>Сервис</th>
+              <th>Env / Config</th>
+              <th>Команда</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-blue">bot</span></td>
+              <td>
+                BOT_TOKEN<br>
+                COMPANY=<em>family</em><br>
+                CATEGORIES_SHEET=<em>categories</em>
+              </td>
+              <td style="color:#475569;font-size:11px">python -m bot.main</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-purple">bot_corp</span></td>
+              <td>
+                BOT_TOKEN_CORP<br>
+                COMPANY=<em>business</em><br>
+                CATEGORIES_SHEET=<em>corp_categories</em>
+              </td>
+              <td style="color:#475569;font-size:11px">python bot_corp_main.py</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-green">bot_notes</span><br><small style="color:#34d399;font-size:10px">новый</small></td>
+              <td>
+                BOT_TOKEN_NOTES
+              </td>
+              <td style="color:#475569;font-size:11px">python bot_notes_main.py</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-orange">dashboard</span></td>
+              <td>
+                DASHBOARD_SECRET<br>
+                NOTES_SECRET<br>
+                port 8080<br>
+                volume /data
+              </td>
+              <td style="color:#475569;font-size:11px">uvicorn main:app</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <br>
+
+        <h3>Общие env-переменные (.env)</h3>
+        <pre>
+<span class="dim"># Telegram боты</span>
+BOT_TOKEN          <span class="dim"># семейный бот</span>
+BOT_TOKEN_CORP     <span class="dim"># бизнес-бот</span>
+BOT_TOKEN_NOTES    <span class="dim"># бот заметок</span>
+ALLOWED_USERS      <span class="dim"># Telegram ID через запятую</span>
+USERS_NAME         <span class="dim"># имена в том же порядке</span>
+
+<span class="dim"># OpenAI</span>
+OPENAI_API_KEY
+
+<span class="dim"># Google Sheets + Calendar</span>
+SPREADSHEET_ID
+GOOGLE_CREDENTIALS_JSON
+GOOGLE_CALENDAR_ID     <span class="dim"># email владельца календаря</span>
+CALENDAR_CATEGORIES    <span class="dim"># категории → Calendar (через запятую)</span>
+
+<span class="dim"># Dashboard</span>
+DASHBOARD_SECRET   <span class="dim"># /d/{secret}</span>
+NOTES_SECRET       <span class="dim"># /n/{secret}</span>
+
+LOG_LEVEL
+        </pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA FLOW SEQUENCE -->
+  <div class="section">
+    <div class="section-title">Жизненный цикл сообщения</div>
+    <div class="two-col">
+
+      <div class="card">
+        <h3>Транзакция (бот семья / бизнес)</h3>
+        <pre>
+User → отправляет текст или голос
+  │
+  ├─ голос → transcription.py → Whisper API → текст
+  │
+  └─ текст → llm.py → gpt-4o-mini
+               │
+               ├─ amount + category найдены
+               │   └─ sheets.py → raw (Google Sheets)
+               │       └─ "Внесено: дата сумма категория"
+               │
+               ├─ amount не найден → FSM clarifying_amount
+               │   └─ бот: "Укажи сумму"
+               │       └─ ответ → повтор (макс 3 попытки)
+               │
+               └─ category не найден → FSM clarifying_category
+                   └─ бот: кнопки со всеми категориями
+                       └─ выбор → sheets.py → raw
+
+dashboard sync (каждый час):
+  Google Sheets raw → SQLite transactions
+  Browser /d/secret → React App → charts
+        </pre>
+      </div>
+
+      <div class="card">
+        <h3>Заметка (bot_notes)</h3>
+        <pre>
+User → отправляет текст или голос
+  │
+  ├─ голос → transcription.py → Whisper API → текст
+  │
+  └─ текст → llm.py → parse_note()
+               │         возвращает {category, event_date}
+               │
+               ├─ category найдена, не Календарь
+               │   └─ sheets.py → notes (Google Sheets)
+               │       └─ "Записано: дата · категория"
+               │
+               ├─ category = Календарь, event_date найдена
+               │   └─ sheets.py → notes + Google Calendar
+               │       └─ "Записано: дата · Календарь\nСобытие: event_date"
+               │
+               ├─ category = Календарь, event_date не найдена
+               │   └─ FSM clarifying_date
+               │       └─ бот: "Укажи дату события"
+               │           └─ LLM парсит дату → сохраняет
+               │
+               └─ category = "unknown"
+                   └─ FSM clarifying_category
+                       └─ бот: кнопки по алфавиту
+                           └─ клик → проверяет Календарь
+                              → сохраняет + событие если нужно
+
+dashboard sync (каждые 10 секунд):
+  Google Sheets notes → SQLite notes
+  Frontend авто-поллинг каждые 10с
+  Кнопка "Удалить" → DELETE API
+    → удаление из Google Calendar (если есть event_id)
+    → удаление из Google Sheets
+    → удаление из SQLite
+        </pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GOOGLE SHEETS STRUCTURE -->
+  <div class="section">
+    <div class="section-title">Структура Google Sheets</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <div class="card">
+        <h3>Вкладка: raw — транзакции</h3>
+        <table class="services-table">
+          <thead><tr><th>Колонка</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>date</td><td style="color:#94a3b8;font-size:11px">YYYY-MM-DD</td><td>Дата операции</td></tr>
+            <tr><td>category</td><td style="color:#94a3b8;font-size:11px">string</td><td>Из листа categories</td></tr>
+            <tr><td>type</td><td style="color:#94a3b8;font-size:11px">string</td><td>Тип (из categories)</td></tr>
+            <tr><td>amount</td><td style="color:#94a3b8;font-size:11px">number</td><td>Сумма</td></tr>
+            <tr><td>original_text</td><td style="color:#94a3b8;font-size:11px">string</td><td>Исходное сообщение</td></tr>
+            <tr><td>author</td><td style="color:#94a3b8;font-size:11px">string</td><td>Имя из USERS_NAME</td></tr>
+            <tr><td>company</td><td style="color:#94a3b8;font-size:11px">family/business</td><td>Из COMPANY env</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px;color:#475569;margin-top:10px">Строка 1 — заголовки. Данные с строки 2.</p>
+      </div>
+
+      <div class="card">
+        <h3>Вкладка: notes — заметки</h3>
+        <table class="services-table">
+          <thead><tr><th>Колонка</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>A: id</td><td style="color:#94a3b8;font-size:11px">UUID</td><td>Уникальный ID заметки</td></tr>
+            <tr><td>B: date</td><td style="color:#94a3b8;font-size:11px">YYYY-MM-DD</td><td>Дата записи (сегодня)</td></tr>
+            <tr><td>C: text</td><td style="color:#94a3b8;font-size:11px">string</td><td>Текст заметки</td></tr>
+            <tr><td>D: type</td><td style="color:#94a3b8;font-size:11px">string</td><td>Категория из notes_categories</td></tr>
+            <tr><td>E: calendar_event_id</td><td style="color:#94a3b8;font-size:11px">string</td><td>ID события Google Calendar (или пусто)</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px;color:#475569;margin-top:10px">Заголовков нет. Данные с строки 1.</p>
+      </div>
+
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <div class="card">
+        <h3>Вкладка: categories — категории семья</h3>
+        <table class="services-table">
+          <thead><tr><th>Колонка</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>category</td><td style="color:#94a3b8;font-size:11px">string</td><td>Название категории</td></tr>
+            <tr><td>type</td><td style="color:#94a3b8;font-size:11px">string</td><td>Тип (доход / расход / ...)</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px;color:#475569;margin-top:10px">Строка 1 — заголовки. Используется ботом <code style="color:#60a5fa">bot</code> (COMPANY=family).</p>
+        <br>
+        <h3>Вкладка: corp_categories — категории бизнес</h3>
+        <table class="services-table">
+          <thead><tr><th>Колонка</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>category</td><td style="color:#94a3b8;font-size:11px">string</td><td>Название категории</td></tr>
+            <tr><td>type</td><td style="color:#94a3b8;font-size:11px">string</td><td>Тип (доход / расход / ...)</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px;color:#475569;margin-top:10px">Строка 1 — заголовки. Используется ботом <code style="color:#a78bfa">bot_corp</code> (COMPANY=business).</p>
+      </div>
+
+      <div class="card">
+        <h3>Вкладка: notes_categories — категории заметок</h3>
+        <table class="services-table">
+          <thead><tr><th>Колонка</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>A (без имени)</td><td style="color:#94a3b8;font-size:11px">string</td><td>Название категории заметки</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px;color:#475569;margin-top:10px">Заголовков нет. Один столбец. Кэшируется 10 минут.</p>
+        <br>
+        <h3 style="margin-top:8px">Взаимодействие со Sheets</h3>
+        <pre style="font-size:11px;line-height:1.8">
+<span class="dim">Запись транзакции:</span>
+  bot/bot_corp → services/sheets.py
+  → raw.append_row(7 колонок)
+
+<span class="dim">Запись заметки:</span>
+  bot_notes → services/sheets.py
+  → notes.append_row(5 колонок)
+  → (если Календарь) Google Calendar API
+
+<span class="dim">Удаление заметки:</span>
+  dashboard → notes_sync.delete_note_from_sheets()
+  → Calendar API delete (если event_id)
+  → notes.find(uuid) → delete_rows()
+
+<span class="dim">Синхронизация в SQLite:</span>
+  raw → transactions (каждый час)
+  notes → notes (каждые 10 секунд)
+        </pre>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1e293b',
+        primaryTextColor: '#f1f5f9',
+        primaryBorderColor: '#334155',
+        lineColor: '#475569',
+        secondaryColor: '#0f172a',
+        tertiaryColor: '#1e293b',
+        background: '#1e293b',
+        mainBkg: '#1e293b',
+        nodeBorder: '#334155',
+        clusterBkg: '#0f172a',
+        clusterBorder: '#334155',
+        titleColor: '#94a3b8',
+        edgeLabelBackground: '#1e293b',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      },
+      flowchart: {
+        curve: 'basis',
+        padding: 20,
+      },
+    })
+    document.addEventListener('DOMContentLoaded', () => mermaid.run())
+  </script>
+
+</body>
+</html>

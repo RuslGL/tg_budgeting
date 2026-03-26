@@ -22,3 +22,6 @@ LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
 COMPANY: str = os.getenv("COMPANY", "family")
 CATEGORIES_SHEET: str = os.getenv("CATEGORIES_SHEET", "categories")
+
+GOOGLE_CALENDAR_ID: str = os.getenv("GOOGLE_CALENDAR_ID", "")
+CALENDAR_CATEGORIES: list[str] = [c.strip().lower() for c in os.getenv("CALENDAR_CATEGORIES", "Календарь").split(",") if c.strip()]

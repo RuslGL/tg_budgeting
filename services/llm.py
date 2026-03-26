@@ -49,3 +49,34 @@ async def parse_transaction(text: str, categories: list[str]) -> dict:
     )
 
     return json.loads(response.choices[0].message.content)
+
+
+NOTE_PROMPT = """Ты помощник для записной книжки. Определи категорию заметки и дату события из сообщения пользователя.
+
+Верни JSON с двумя полями:
+- category: одна строка точно из списка доступных категорий (см. ниже). Назначай категорию ТОЛЬКО если она явно упомянута в тексте сообщения (например, пользователь написал слово из списка категорий). Если категория не упомянута явно — верни "unknown".
+- event_date: дата события в формате YYYY-MM-DD, если она явно упомянута в тексте (например "15 апреля", "в пятницу 28-го", "завтра"). Если даты нет — верни null.
+
+Сегодня: {today}
+Доступные категории: {categories}
+
+Важно: category должна быть точно из списка выше или "unknown". Никаких других значений.
+Отвечай строго в формате JSON, без пояснений."""
+
+
+async def parse_note(text: str, categories: list[str]) -> dict:
+    client = _get_client()
+    today = date.today().isoformat()
+    prompt = NOTE_PROMPT.format(today=today, categories=", ".join(categories))
+
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": text},
+        ],
+        response_format={"type": "json_object"},
+        temperature=0,
+    )
+
+    return json.loads(response.choices[0].message.content)

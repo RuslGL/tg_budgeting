@@ -17,6 +17,14 @@ services:
     command: python bot_corp_main.py
     restart: unless-stopped
 
+  bot_notes:
+    build: .
+    env_file: .env
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN_NOTES}
+    command: python bot_notes_main.py
+    restart: unless-stopped
+
   dashboard:
     build: ./dashboard
     env_file: .env
