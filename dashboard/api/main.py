@@ -32,7 +32,7 @@ async def _sync_loop() -> None:
             logger.info("Sync complete: %d rows", count)
         except Exception as e:
             logger.error("Sync error: %s", e)
-        await asyncio.sleep(3600)
+        await asyncio.sleep(120)
 
 
 async def _notes_sync_loop() -> None:
