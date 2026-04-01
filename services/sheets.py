@@ -84,8 +84,12 @@ def _create_calendar_event(event_date: str, text: str) -> str:
     service = build("calendar", "v3", credentials=creds)
     event = {
         "summary": text[:100],
-        "start": {"date": event_date},
-        "end": {"date": event_date},
+        "start": {"dateTime": f"{event_date}T07:00:00", "timeZone": "Europe/Moscow"},
+        "end": {"dateTime": f"{event_date}T07:30:00", "timeZone": "Europe/Moscow"},
+        "reminders": {
+            "useDefault": False,
+            "overrides": [{"method": "popup", "minutes": 0}],
+        },
     }
     result = service.events().insert(calendarId=config.GOOGLE_CALENDAR_ID, body=event).execute()
     logger.info("Calendar event created: id=%s", result.get("id"))
@@ -111,7 +115,7 @@ def append_note(date: str, text: str, category: str, event_date: Optional[str] =
     client = _get_client()
     sheet = client.open_by_key(config.SPREADSHEET_ID)
     ws = sheet.worksheet("notes")
-    ws.append_row([note_id, date, text, category, calendar_event_id])
+    ws.append_row([note_id, date, text, category, calendar_event_id, event_date or ""])
     return note_id
 
 

@@ -34,14 +34,15 @@ def run_notes_sync() -> int:
         text = row[2].strip()
         type_ = row[3].strip()
         calendar_event_id = row[4].strip() if len(row) > 4 else ""
+        event_date = row[5].strip() if len(row) > 5 else ""
         if not note_id or not date:
             continue
-        records.append((note_id, date, text, type_, calendar_event_id))
+        records.append((note_id, date, text, type_, calendar_event_id, event_date))
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("DELETE FROM notes")
         conn.executemany(
-            "INSERT OR REPLACE INTO notes (id, date, text, type, calendar_event_id) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO notes (id, date, text, type, calendar_event_id, event_date) VALUES (?, ?, ?, ?, ?, ?)",
             records,
         )
         conn.commit()

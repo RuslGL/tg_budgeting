@@ -169,6 +169,17 @@ function NoteCard({ note, categories, onDelete, t }) {
             {isToday ? 'Сегодня' : formatDate(note.date)}
           </span>
         </div>
+        {note.event_date && (
+          <div style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: color,
+            marginBottom: 6,
+            letterSpacing: '0.2px',
+          }}>
+            Назначено: {formatDate(note.event_date)}
+          </div>
+        )}
         <div style={{
           fontSize: 14,
           color: t.noteText,

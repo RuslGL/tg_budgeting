@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import date
 
 import openai
@@ -50,17 +51,18 @@ async def process_note(message: Message, text: str, state: FSMContext) -> None:
 
     category = parsed.get("category", "unknown")
     event_date = parsed.get("event_date")
+    clean_text = parsed.get("note_text") or text
     note_date = date.today().isoformat()
-    logger.info("parse_note result: category=%s event_date=%s", category, event_date)
+    logger.info("parse_note result: category=%s event_date=%s note_text=%s", category, event_date, clean_text)
 
     if category != "unknown" and category in categories:
         if _is_calendar_category(category) and not event_date:
             await state.set_state(NoteForm.clarifying_date)
-            await state.update_data(text=text, date=note_date, category=category)
+            await state.update_data(text=clean_text, date=note_date, category=category, clarify_ts=time.time())
             await message.answer("Укажи дату события (например: 15 апреля или 2026-04-15)")
             return
-        sheets.append_note(note_date, text, category, event_date)
-        await message.answer(_confirm_text(note_date, category, text, event_date))
+        sheets.append_note(note_date, clean_text, category, event_date)
+        await message.answer(_confirm_text(note_date, category, clean_text, event_date))
         return
 
     await state.set_state(NoteForm.clarifying_category)
@@ -116,7 +118,7 @@ async def handle_category_choice(callback: CallbackQuery, state: FSMContext) -> 
 
     if _is_calendar_category(category) and not event_date:
         await state.set_state(NoteForm.clarifying_date)
-        await state.update_data(category=category)
+        await state.update_data(category=category, clarify_ts=time.time())
         await callback.message.edit_text("Укажи дату события (например: 15 апреля или 2026-04-15)")
         return
 
@@ -125,15 +127,21 @@ async def handle_category_choice(callback: CallbackQuery, state: FSMContext) -> 
     await callback.message.edit_text(_confirm_text(note_date, category, text, event_date))
 
 
-@router.message(NoteForm.clarifying_date, F.text)
-async def handle_date_input(message: Message, state: FSMContext) -> None:
+DATE_CLARIFY_TIMEOUT = 5 * 60  # 5 minutes
+
+
+async def _process_date_input(message: Message, date_text: str, state: FSMContext) -> None:
     data = await state.get_data()
+    if time.time() - data.get("clarify_ts", 0) > DATE_CLARIFY_TIMEOUT:
+        await state.clear()
+        await message.answer("Время вышло. Отправь заметку заново.")
+        return
     text = data.get("text")
     note_date = data.get("date")
     category = data.get("category")
 
     try:
-        parsed = await llm.parse_note(message.text, [])
+        parsed = await llm.parse_note(date_text, [])
         event_date = parsed.get("event_date")
     except Exception:
         event_date = None
@@ -145,3 +153,29 @@ async def handle_date_input(message: Message, state: FSMContext) -> None:
     await state.clear()
     sheets.append_note(note_date, text, category, event_date)
     await message.answer(_confirm_text(note_date, category, text, event_date))
+
+
+@router.message(NoteForm.clarifying_date, F.text)
+async def handle_date_input(message: Message, state: FSMContext) -> None:
+    await _process_date_input(message, message.text, state)
+
+
+@router.message(NoteForm.clarifying_date, F.voice)
+async def handle_date_voice(message: Message, bot: Bot, state: FSMContext) -> None:
+    try:
+        file = await bot.get_file(message.voice.file_id)
+        buffer = await bot.download_file(file.file_path)
+        file_bytes = buffer.read()
+    except Exception as e:
+        logger.error("Ошибка при скачивании голосового (дата): %s", e)
+        await message.answer("Не удалось загрузить голосовое сообщение. Попробуй ещё раз.")
+        return
+
+    try:
+        date_text = await transcription.transcribe(file_bytes)
+    except Exception as e:
+        logger.error("Ошибка транскрипции (дата): %s", e)
+        await message.answer("Не удалось распознать речь. Попробуй ещё раз.")
+        return
+
+    await _process_date_input(message, date_text, state)
