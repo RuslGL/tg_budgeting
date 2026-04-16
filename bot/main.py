@@ -3,6 +3,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand
 
 import config
 from bot.handlers import clarification, commands, text, voice
@@ -21,6 +22,11 @@ async def main() -> None:
     dp.include_router(commands.router)
     dp.include_router(voice.router)
     dp.include_router(text.router)
+
+    await bot.set_my_commands([
+        BotCommand(command="reload", description="Обновить список категорий"),
+        BotCommand(command="help",   description="Как пользоваться ботом"),
+    ])
 
     await dp.start_polling(bot)
 

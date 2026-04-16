@@ -2,6 +2,8 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
+from services import sheets
+
 router = Router()
 
 
@@ -16,6 +18,12 @@ async def cmd_start(message: Message) -> None:
         "/start — это сообщение\n"
         "/help — помощь"
     )
+
+
+@router.message(Command("reload"))
+async def cmd_reload(message: Message) -> None:
+    sheets.invalidate_cache()
+    await message.answer("Кэш категорий сброшен. Новые категории уже доступны.")
 
 
 @router.message(Command("help"))

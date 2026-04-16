@@ -9,7 +9,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import Message
 
 import config
-from bot.handlers.clarification import build_categories_keyboard, _confirmed
+from bot.handlers.clarification import _ask_project_or_save, build_categories_keyboard, _confirmed
 from bot.states import Form
 from services import llm, sheets
 
@@ -84,14 +84,7 @@ async def process_transaction(message: Message, text: str, state: FSMContext) ->
         return
 
     logger.info("APPEND: date=%s | category=%s | amount=%s | author=%s | company=%s", date, category, amount, author, company)
-    try:
-        sheets.append_transaction(date, category, amount, text, author, company)
-    except Exception as e:
-        logger.error("Ошибка при записи в таблицу: %s", e)
-        await message.answer("Не удалось записать в таблицу. Попробуй ещё раз.")
-        return
-
-    await message.answer(_confirmed(date, amount, category))
+    await _ask_project_or_save(message, state, date, category, amount, text, author, company, expires_at)
 
 
 @router.message(StateFilter(default_state))

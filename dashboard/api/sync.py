@@ -25,12 +25,14 @@ def init_db() -> None:
                 type TEXT NOT NULL,
                 amount REAL NOT NULL,
                 author TEXT NOT NULL DEFAULT '',
-                company TEXT NOT NULL DEFAULT ''
+                company TEXT NOT NULL DEFAULT '',
+                project TEXT NOT NULL DEFAULT 'unknown'
             )
         """)
         for col, definition in [
             ("author", "TEXT NOT NULL DEFAULT ''"),
             ("company", "TEXT NOT NULL DEFAULT ''"),
+            ("project", "TEXT NOT NULL DEFAULT 'unknown'"),
         ]:
             try:
                 conn.execute(f"ALTER TABLE transactions ADD COLUMN {col} {definition}")
@@ -61,18 +63,19 @@ def run_sync() -> int:
         d, category, type_, amount_str = row[0], row[1], row[2], row[3]
         author = row[5] if len(row) > 5 else ""
         company = row[6] if len(row) > 6 else ""
+        project = row[7] if len(row) > 7 else "unknown"
         if not d or d < cutoff:
             continue
         try:
             amount = float(amount_str)
         except ValueError:
             continue
-        fresh.append((d, category, type_, amount, author, company))
+        fresh.append((d, category, type_, amount, author, company, project))
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("DELETE FROM transactions WHERE date >= ?", (cutoff,))
         conn.executemany(
-            "INSERT INTO transactions (date, category, type, amount, author, company) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO transactions (date, category, type, amount, author, company, project) VALUES (?, ?, ?, ?, ?, ?, ?)",
             fresh,
         )
         conn.commit()

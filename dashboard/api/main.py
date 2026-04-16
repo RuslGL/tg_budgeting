@@ -9,6 +9,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+import cal_db
+import cal_sync
 import db
 import notes_db
 import notes_sync
@@ -21,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 DASHBOARD_SECRET = os.environ["DASHBOARD_SECRET"]
 NOTES_SECRET = os.environ["NOTES_SECRET"]
+CALORIES_SECRET = os.environ.get("CALORIES_SECRET", "")
 STATIC_DIR = Path(__file__).parent / "frontend" / "dist"
 
 
@@ -46,10 +49,21 @@ async def _notes_sync_loop() -> None:
         await asyncio.sleep(10)
 
 
+async def _cal_sync_loop() -> None:
+    cal_db.init_cal_tables()
+    while True:
+        try:
+            cal_sync.run_cal_sync()
+        except Exception as e:
+            logger.error("Calorie sync error: %s", e)
+        await asyncio.sleep(300)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     asyncio.create_task(_sync_loop())
     asyncio.create_task(_notes_sync_loop())
+    asyncio.create_task(_cal_sync_loop())
     yield
 
 
@@ -66,6 +80,11 @@ def _check(secret: str) -> None:
 
 def _check_notes(secret: str) -> None:
     if secret != NOTES_SECRET:
+        raise HTTPException(status_code=404)
+
+
+def _check_calories(secret: str) -> None:
+    if not CALORIES_SECRET or secret != CALORIES_SECRET:
         raise HTTPException(status_code=404)
 
 
@@ -96,28 +115,34 @@ async def months(secret: str, company: str = "family"):
     return db.get_months(company)
 
 
-@app.get("/d/{secret}/api/month")
-async def month(secret: str, year: int, month: int, company: str = "family"):
+@app.get("/d/{secret}/api/projects")
+async def projects(secret: str, company: str = "family"):
     _check(secret)
-    return db.get_month_data(year, month, company)
+    return db.get_projects(company)
+
+
+@app.get("/d/{secret}/api/month")
+async def month(secret: str, year: int, month: int, company: str = "family", project: str | None = None):
+    _check(secret)
+    return db.get_month_data(year, month, company, project)
 
 
 @app.get("/d/{secret}/api/year")
-async def year(secret: str, year: int, company: str = "family"):
+async def year(secret: str, year: int, company: str = "family", project: str | None = None):
     _check(secret)
-    return db.get_year_data(year, company)
+    return db.get_year_data(year, company, project)
 
 
 @app.get("/d/{secret}/api/month/by-author")
-async def month_by_author(secret: str, year: int, month: int, company: str = "family"):
+async def month_by_author(secret: str, year: int, month: int, company: str = "family", project: str | None = None):
     _check(secret)
-    return db.get_month_by_author(year, month, company)
+    return db.get_month_by_author(year, month, company, project)
 
 
 @app.get("/d/{secret}/api/year/by-author")
-async def year_by_author(secret: str, year: int, company: str = "family"):
+async def year_by_author(secret: str, year: int, company: str = "family", project: str | None = None):
     _check(secret)
-    return db.get_year_by_author(year, company)
+    return db.get_year_by_author(year, company, project)
 
 
 @app.get("/n/{secret}")
@@ -160,3 +185,49 @@ async def delete_note(secret: str, note_id: str):
         logger.error("Sheets delete error: %s", e)
     notes_db.delete_note_local(note_id)
     return {"ok": True}
+
+
+@app.get("/cal/{secret}")
+async def calories_index(secret: str):
+    _check_calories(secret)
+    html = (STATIC_DIR / "index.html").read_text()
+    patched = html.replace(
+        "</head>",
+        '<link rel="icon" type="image/svg+xml" href="/favicon-calories.svg" /></head>',
+    )
+    return HTMLResponse(patched)
+
+
+@app.get("/favicon-calories.svg")
+async def favicon_calories():
+    return FileResponse(STATIC_DIR / "favicon-calories.svg", media_type="image/svg+xml")
+
+
+@app.post("/cal/{secret}/api/sync")
+async def cal_sync_now(secret: str):
+    _check_calories(secret)
+    try:
+        cal_sync.run_cal_sync()
+    except Exception as e:
+        logger.error("Forced cal sync error: %s", e)
+    return {"ok": True}
+
+
+@app.get("/cal/{secret}/api/today")
+async def cal_today(secret: str, date: str | None = None):
+    _check_calories(secret)
+    from datetime import date as date_cls
+    target = date or date_cls.today().isoformat()
+    meals = cal_db.get_today_meals(target)
+    macros = cal_db.get_today_macros(target)
+    profile = cal_db.get_cal_profile()
+    return {"today": target, "meals": meals, "macros": macros, "profile": profile}
+
+
+@app.get("/cal/{secret}/api/history")
+async def cal_history(secret: str, days: int = 14):
+    _check_calories(secret)
+    weight = cal_db.get_weight_history(days)
+    calories = cal_db.get_calorie_history(days)
+    profile = cal_db.get_cal_profile()
+    return {"weight": weight, "calories": calories, "profile": profile}

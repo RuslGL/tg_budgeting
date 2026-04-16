@@ -1,3 +1,5 @@
+Прочитай CLAUDE.md, developing_plan.md и файлы в memory/. Потом скажи что сейчас в проекте и что делаем дальше.
+
 # CLAUDE.md — Project Rules
 
 ## Development workflow

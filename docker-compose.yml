@@ -25,6 +25,17 @@ services:
     command: python bot_notes_main.py
     restart: unless-stopped
 
+  bot_calories:
+    build: .
+    env_file: .env
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN_CALORIES}
+      FOOD_DB_PATH: /data/food.db
+    command: python bot_calories_main.py
+    volumes:
+      - food_cache:/data
+    restart: unless-stopped
+
   dashboard:
     build: ./dashboard
     env_file: .env
@@ -36,3 +47,4 @@ services:
 
 volumes:
   dashboard_data:
+  food_cache:

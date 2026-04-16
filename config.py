@@ -25,3 +25,9 @@ CATEGORIES_SHEET: str = os.getenv("CATEGORIES_SHEET", "categories")
 
 GOOGLE_CALENDAR_ID: str = os.getenv("GOOGLE_CALENDAR_ID", "")
 CALENDAR_CATEGORIES: list[str] = [c.strip().lower() for c in os.getenv("CALENDAR_CATEGORIES", "Календарь").split(",") if c.strip()]
+
+BOT_TOKEN_CALORIES: str = os.getenv("BOT_TOKEN_CALORIES", "")
+CALORIES_SECRET: str = os.getenv("CALORIES_SECRET", "")
+DASHBOARD_URL: str = os.getenv("DASHBOARD_URL", "http://dashboard:8080")
+FATSECRET_CLIENT_ID: str = os.getenv("FATSECRET_CLIENT_ID", "")
+FATSECRET_CLIENT_SECRET: str = os.getenv("FATSECRET_CLIENT_SECRET", "")

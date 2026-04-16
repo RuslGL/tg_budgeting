@@ -189,46 +189,57 @@ flowchart LR
   U1(["👤 User\nсемья"]):::tg
   U2(["👤 User\nбизнес"]):::tg
   U3(["👤 User\nзаметки"]):::tg
+  U4(["👤 User\nкалории"]):::tg
   BR(["🌐 Browser"]):::browser
 
   subgraph DC["  Docker Compose  "]
     BOT["🤖 bot\npython -m bot.main\nCOMPANY=family"]:::docker
     CORP["🤖 bot_corp\nbot_corp_main.py\nCOMPANY=business"]:::docker
     NOTES["🤖 bot_notes\nbot_notes_main.py"]:::docker
+    CALS["🤖 bot_calories\nbot_calories_main.py"]:::docker
 
     subgraph SVC["  services/  "]
       LLM["llm.py\ngpt-4o-mini"]:::svc
       TRANS["transcription.py\nWhisper"]:::svc
       SH["sheets.py\ngspread"]:::svc
+      FDB["food_db.py\nFatSecret API"]:::svc
     end
 
     DASH["📊 dashboard\nFastAPI :8080\nReact SPA\nSQLite /data/"]:::dash
   end
 
   OAI(["☁️ OpenAI API\nWhisper + GPT"]):::ext
-  GS1(["📋 Google Sheets\nraw — транзакции\ncategories\ncorp_categories"]):::ext
+  GS1(["📋 Google Sheets\nraw — транзакции\ncategories\ncorp_categories\nbusiness_type"]):::ext
   GS2(["📋 Google Sheets\nnotes\nnotes_categories"]):::ext
+  GS3(["📋 Google Sheets\ncal_meals\ncal_weight\ncal_profile"]):::ext
   GCAL(["📅 Google Calendar\nprimary calendar"]):::ext
+  FS(["☁️ FatSecret API\nпоиск продуктов"]):::ext
 
   U1 -->|"voice / text"| BOT
   U2 -->|"voice / text"| CORP
   U3 -->|"voice / text"| NOTES
+  U4 -->|"voice / text"| CALS
 
   BOT  --> TRANS & LLM & SH
   CORP --> TRANS & LLM & SH
   NOTES --> TRANS & LLM & SH
+  CALS --> TRANS & LLM & SH & FDB
 
   TRANS & LLM --> OAI
+  FDB --> FS
   SH --> GS1
   SH --> GS2
+  SH --> GS3
   SH -->|"категория Календарь"| GCAL
 
-  DASH -->|"sync каждый час"| GS1
+  DASH -->|"sync каждые 2 мин"| GS1
   DASH -->|"sync каждые 10с"| GS2
+  DASH -->|"sync каждые 30с"| GS3
   DASH -->|"удаление события"| GCAL
 
   BR -->|"/d/secret — бюджет"| DASH
   BR -->|"/n/secret — заметки"| DASH
+  BR -->|"/cal/secret — калории"| DASH
       </pre>
     </div>
   </div>
@@ -244,44 +255,52 @@ flowchart LR
 tg_budgeting/
 ├── <span class="hl">bot/</span>                    <span class="dim"># общие обработчики для всех ботов</span>
 │   ├── main.py             <span class="dim"># точка входа: семейный бот</span>
-│   ├── states.py           <span class="dim"># FSM: Form + NoteForm</span>
+│   ├── states.py           <span class="dim"># FSM: Form + NoteForm + CalorieForm</span>
 │   ├── handlers/
-│   │   ├── commands.py     <span class="dim"># /start /help</span>
+│   │   ├── commands.py     <span class="dim"># /start /help /reload</span>
 │   │   ├── text.py         <span class="dim"># транзакции: текст</span>
 │   │   ├── voice.py        <span class="dim"># транзакции: голос</span>
-│   │   ├── clarification.py<span class="dim"># FSM: уточнение суммы/категории</span>
-│   │   └── <span class="new">notes.py</span>        <span class="new"># НОВЫЙ: заметки</span>
+│   │   ├── clarification.py<span class="dim"># FSM: уточнение суммы/категории/проекта</span>
+│   │   ├── notes.py        <span class="dim"># заметки</span>
+│   │   └── calories.py     <span class="dim"># калории: еда, вес, лимиты</span>
 │   └── middlewares/
 │       └── auth.py         <span class="dim"># проверка ALLOWED_USERS</span>
 │
 ├── bot_corp_main.py        <span class="dim"># точка входа: бизнес-бот</span>
-├── <span class="new">bot_notes_main.py</span>       <span class="new"># НОВЫЙ: бот заметок</span>
+├── bot_notes_main.py       <span class="dim"># точка входа: бот заметок</span>
+├── bot_calories_main.py    <span class="dim"># точка входа: бот калорий</span>
 │
 ├── <span class="hl">services/</span>              <span class="dim"># переиспользуются всеми ботами</span>
-│   ├── llm.py              <span class="dim"># parse_transaction + parse_note</span>
-│   ├── sheets.py           <span class="dim"># append_transaction + append/delete_note</span>
+│   ├── llm.py              <span class="dim"># parse_transaction + parse_note + parse_meal</span>
+│   ├── sheets.py           <span class="dim"># транзакции + заметки + калории</span>
+│   ├── food_db.py          <span class="dim"># FatSecret API: поиск продуктов</span>
 │   └── transcription.py    <span class="dim"># Whisper</span>
 │
 ├── config.py               <span class="dim"># все env-переменные</span>
-├── Dockerfile              <span class="dim"># образ для трёх ботов</span>
+├── Dockerfile              <span class="dim"># образ для всех ботов</span>
 ├── docker-compose.yml
 │
 └── <span class="hl">dashboard/</span>
     ├── Dockerfile          <span class="dim"># multi-stage: Node build + Python</span>
     └── api/
-    │   ├── main.py         <span class="dim"># FastAPI: /d/ и /n/ эндпоинты</span>
+    │   ├── main.py         <span class="dim"># FastAPI: /d/ /n/ /cal/ эндпоинты</span>
     │   ├── db.py           <span class="dim"># SQLite: транзакции</span>
     │   ├── sync.py         <span class="dim"># sync: raw → SQLite</span>
-    │   ├── <span class="new">notes_db.py</span>     <span class="new"># НОВЫЙ: SQLite: заметки</span>
-    │   └── <span class="new">notes_sync.py</span>   <span class="new"># НОВЫЙ: sync: notes → SQLite</span>
+    │   ├── notes_db.py     <span class="dim"># SQLite: заметки</span>
+    │   ├── notes_sync.py   <span class="dim"># sync: notes → SQLite</span>
+    │   ├── cal_db.py       <span class="dim"># SQLite: калории</span>
+    │   ├── cal_sync.py     <span class="dim"># sync: cal_* → SQLite</span>
+    │   └── food_db.py      <span class="dim"># FatSecret поиск для дашборда</span>
     └── frontend/
         ├── public/
-        │   ├── favicon-notes.svg   <span class="dim"># иконка заметок</span>
-        │   └── favicon-budget.svg  <span class="dim"># иконка бюджета</span>
+        │   ├── favicon-notes.svg     <span class="dim"># иконка заметок</span>
+        │   ├── favicon-budget.svg    <span class="dim"># иконка бюджета</span>
+        │   └── favicon-calories.svg  <span class="dim"># иконка калорий</span>
         └── src/
-            ├── main.jsx        <span class="dim"># роутинг /d/→App, /n/→NotesApp; favicon+title</span>
-            ├── App.jsx         <span class="dim"># дашборд бюджета (тёмная тема)</span>
-            └── NotesApp.jsx    <span class="dim"># дашборд заметок: тёмная/светлая тема, переключатель</span>
+            ├── main.jsx          <span class="dim"># роутинг /d/→App, /n/→NotesApp, /cal/→CaloriesApp</span>
+            ├── App.jsx           <span class="dim"># дашборд бюджета</span>
+            ├── NotesApp.jsx      <span class="dim"># дашборд заметок</span>
+            └── CaloriesApp.jsx   <span class="dim"># дашборд калорий: КБЖУ, вес, графики</span>
         </pre>
       </div>
 
@@ -315,17 +334,27 @@ tg_budgeting/
               <td style="color:#475569;font-size:11px">python bot_corp_main.py</td>
             </tr>
             <tr>
-              <td><span class="badge badge-green">bot_notes</span><br><small style="color:#34d399;font-size:10px">новый</small></td>
+              <td><span class="badge badge-green">bot_notes</span></td>
               <td>
                 BOT_TOKEN_NOTES
               </td>
               <td style="color:#475569;font-size:11px">python bot_notes_main.py</td>
             </tr>
             <tr>
+              <td><span class="badge badge-green">bot_calories</span></td>
+              <td>
+                BOT_TOKEN_CALORIES<br>
+                FATSECRET_CLIENT_ID<br>
+                FATSECRET_CLIENT_SECRET
+              </td>
+              <td style="color:#475569;font-size:11px">python bot_calories_main.py</td>
+            </tr>
+            <tr>
               <td><span class="badge badge-orange">dashboard</span></td>
               <td>
                 DASHBOARD_SECRET<br>
                 NOTES_SECRET<br>
+                CALORIES_SECRET<br>
                 port 8080<br>
                 volume /data
               </td>
@@ -342,6 +371,7 @@ tg_budgeting/
 BOT_TOKEN          <span class="dim"># семейный бот</span>
 BOT_TOKEN_CORP     <span class="dim"># бизнес-бот</span>
 BOT_TOKEN_NOTES    <span class="dim"># бот заметок</span>
+BOT_TOKEN_CALORIES <span class="dim"># бот калорий</span>
 ALLOWED_USERS      <span class="dim"># Telegram ID через запятую</span>
 USERS_NAME         <span class="dim"># имена в том же порядке</span>
 
@@ -354,9 +384,14 @@ GOOGLE_CREDENTIALS_JSON
 GOOGLE_CALENDAR_ID     <span class="dim"># email владельца календаря</span>
 CALENDAR_CATEGORIES    <span class="dim"># категории → Calendar (через запятую)</span>
 
+<span class="dim"># FatSecret</span>
+FATSECRET_CLIENT_ID
+FATSECRET_CLIENT_SECRET
+
 <span class="dim"># Dashboard</span>
 DASHBOARD_SECRET   <span class="dim"># /d/{secret}</span>
 NOTES_SECRET       <span class="dim"># /n/{secret}</span>
+CALORIES_SECRET    <span class="dim"># /cal/{secret}</span>
 
 LOG_LEVEL
         </pre>
@@ -432,6 +467,41 @@ dashboard sync (каждые 10 секунд):
     → удаление из Google Calendar (если есть event_id)
     → удаление из Google Sheets
     → удаление из SQLite
+        </pre>
+      </div>
+
+      <div class="card">
+        <h3>Калории (bot_calories)</h3>
+        <pre>
+User → отправляет текст или голос
+  │
+  ├─ голос → transcription.py → Whisper API → текст
+  │
+  └─ текст → llm.py → parse_meal()
+               │
+               ├─ type=meals → список продуктов
+               │   ├─ FatSecret поиск → КБЖУ найдено
+               │   │   └─ sheets.py → cal_meals
+               │   │       └─ "Добавлено: продукт, Xг"
+               │   │           └─ "Сегодня: X / лимит ккал"
+               │   ├─ продукт не найден → GPT estimate [GPT]
+               │   └─ граммы не указаны → FSM clarifying_grams
+               │       └─ "Сколько грамм X?"
+               │
+               ├─ type=weight
+               │   └─ sheets.py → cal_weight
+               │       └─ "Вес записан: X кг"
+               │
+               ├─ "мой продукт / собственный продукт"
+               │   └─ FSM entering_custom_product
+               │       └─ пользователь вводит КБЖУ вручную
+               │
+               └─ "удалить последнее"
+                   └─ удаляет последнюю строку cal_meals
+
+dashboard sync (каждые 30 секунд):
+  Google Sheets cal_meals/cal_weight/cal_profile → SQLite
+  Browser /cal/secret → CaloriesApp → КБЖУ + графики
         </pre>
       </div>
 
