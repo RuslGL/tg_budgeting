@@ -31,3 +31,9 @@ CALORIES_SECRET: str = os.getenv("CALORIES_SECRET", "")
 DASHBOARD_URL: str = os.getenv("DASHBOARD_URL", "http://dashboard:8080")
 FATSECRET_CLIENT_ID: str = os.getenv("FATSECRET_CLIENT_ID", "")
 FATSECRET_CLIENT_SECRET: str = os.getenv("FATSECRET_CLIENT_SECRET", "")
+
+BOT_TOKEN_ASSISTANT: str = os.getenv("BOT_TOKEN_ASSISTANT", "")
+ASSISTANT_SPREADSHEET_ID: str = os.getenv("ASSISTANT_SPREADSHEET_ID", "")
+ASSISTANT_USER_ID: int = int(os.getenv("ASSISTANT_USER_ID", "666038149"))
+
+PROXY_URL: str = os.getenv("PROXY_URL", "")

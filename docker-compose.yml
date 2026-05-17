@@ -5,6 +5,9 @@ services:
     environment:
       COMPANY: family
       CATEGORIES_SHEET: categories
+      HTTP_PROXY: ${PROXY_URL}
+      HTTPS_PROXY: ${PROXY_URL}
+    network_mode: host
     restart: unless-stopped
 
   bot_corp:
@@ -14,7 +17,10 @@ services:
       BOT_TOKEN: ${BOT_TOKEN_CORP}
       COMPANY: business
       CATEGORIES_SHEET: corp_categories
+      HTTP_PROXY: ${PROXY_URL}
+      HTTPS_PROXY: ${PROXY_URL}
     command: python bot_corp_main.py
+    network_mode: host
     restart: unless-stopped
 
   bot_notes:
@@ -22,7 +28,10 @@ services:
     env_file: .env
     environment:
       BOT_TOKEN: ${BOT_TOKEN_NOTES}
+      HTTP_PROXY: ${PROXY_URL}
+      HTTPS_PROXY: ${PROXY_URL}
     command: python bot_notes_main.py
+    network_mode: host
     restart: unless-stopped
 
   bot_calories:
@@ -31,18 +40,33 @@ services:
     environment:
       BOT_TOKEN: ${BOT_TOKEN_CALORIES}
       FOOD_DB_PATH: /data/food.db
+      HTTP_PROXY: ${PROXY_URL}
+      HTTPS_PROXY: ${PROXY_URL}
     command: python bot_calories_main.py
     volumes:
       - food_cache:/data
+    network_mode: host
+    restart: unless-stopped
+
+  bot_assistant:
+    build: .
+    env_file: .env
+    environment:
+      HTTP_PROXY: ${PROXY_URL}
+      HTTPS_PROXY: ${PROXY_URL}
+    command: python personal_assistant/main.py
+    network_mode: host
     restart: unless-stopped
 
   dashboard:
     build: ./dashboard
     env_file: .env
-    ports:
-      - "8080:8080"
+    environment:
+      HTTP_PROXY: ${PROXY_URL}
+      HTTPS_PROXY: ${PROXY_URL}
     volumes:
       - dashboard_data:/data
+    network_mode: host
     restart: unless-stopped
 
 volumes:

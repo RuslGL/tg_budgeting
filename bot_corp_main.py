@@ -8,12 +8,13 @@ from aiogram.types import BotCommand
 import config
 from bot.handlers import clarification, commands, text, voice
 from bot.middlewares.auth import AuthMiddleware
+from services.proxy import make_bot_session
 
 logging.basicConfig(level=config.LOG_LEVEL)
 
 
 async def main() -> None:
-    bot = Bot(token=config.BOT_TOKEN)
+    bot = Bot(token=config.BOT_TOKEN, session=make_bot_session())
     dp = Dispatcher(storage=MemoryStorage())
     dp.message.middleware(AuthMiddleware())
     dp.include_router(clarification.router)

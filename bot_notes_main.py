@@ -8,6 +8,7 @@ import config
 from bot.handlers import commands
 from bot.handlers import notes
 from bot.middlewares.auth import AuthMiddleware
+from services.proxy import make_bot_session
 
 logging.basicConfig(level=config.LOG_LEVEL)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -15,7 +16,7 @@ logging.getLogger("aiogram.event").setLevel(logging.WARNING)
 
 
 async def main() -> None:
-    bot = Bot(token=config.BOT_TOKEN)
+    bot = Bot(token=config.BOT_TOKEN, session=make_bot_session())
     dp = Dispatcher(storage=MemoryStorage())
     dp.message.middleware(AuthMiddleware())
     dp.callback_query.middleware(AuthMiddleware())
