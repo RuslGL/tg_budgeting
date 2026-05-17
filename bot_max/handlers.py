@@ -160,12 +160,23 @@ def setup_handlers(dp, bot) -> None:
 
             # Check for audio/voice attachment
             attachments = getattr(body, "attachments", None) or []
-            if attachments:
-                logger.info("Attachments: %s", [(getattr(a, "type", "?"), str(a)[:80]) for a in attachments])
-            audio = next((a for a in attachments if getattr(a, "type", "") in ("audio", "voice")), None)
+            logger.info("Message body: text=%r attachments_count=%d",
+                        getattr(body, "text", None), len(attachments))
+            for att in attachments:
+                logger.info("Attachment: type=%r payload=%r",
+                            getattr(att, "type", "?"),
+                            str(getattr(att, "payload", None))[:120])
+
+            def _is_audio(a) -> bool:
+                t = str(getattr(a, "type", "")).lower()
+                return "audio" in t or "voice" in t
+
+            audio = next((a for a in attachments if _is_audio(a)), None)
 
             if audio:
-                url = getattr(getattr(audio, "payload", None), "url", None)
+                payload = getattr(audio, "payload", None)
+                url = getattr(payload, "url", None)
+                logger.info("Audio found: payload=%r url=%r", payload, url)
                 if not url:
                     await bot.send_message(chat_id=chat_id, text="Не удалось получить файл.")
                     return
