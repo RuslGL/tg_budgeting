@@ -54,7 +54,7 @@ services:
     environment:
       HTTP_PROXY: ${PROXY_URL}
       HTTPS_PROXY: ${PROXY_URL}
-    command: python personal_assistant/main.py
+    command: python -m personal_assistant.main
     network_mode: host
     restart: unless-stopped
 
