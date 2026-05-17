@@ -48,6 +48,16 @@ services:
     network_mode: host
     restart: unless-stopped
 
+  bot_max:
+    build: .
+    env_file: .env
+    environment:
+      HTTP_PROXY: ${PROXY_URL}
+      HTTPS_PROXY: ${PROXY_URL}
+    command: python bot_max_main.py
+    network_mode: host
+    restart: unless-stopped
+
   bot_assistant:
     build: .
     env_file: .env
