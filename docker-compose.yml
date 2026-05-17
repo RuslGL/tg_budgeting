@@ -52,8 +52,8 @@ services:
     build: .
     env_file: .env
     environment:
-      HTTP_PROXY: ${PROXY_URL}
-      HTTPS_PROXY: ${PROXY_URL}
+      NO_PROXY: botapi.max.ru,max.ru
+      no_proxy: botapi.max.ru,max.ru
     command: python bot_max_main.py
     network_mode: host
     restart: unless-stopped
