@@ -30,7 +30,7 @@ def _clear_state(chat_id: str) -> None:
 async def _save(bot, chat_id: str, date: str, category: str,
                 amount: float, text: str, author: str) -> None:
     try:
-        sheets.append_row(date, category, "расход", amount, text, author, config.COMPANY)
+        sheets.append_transaction(date, category, amount, text, author, config.COMPANY)
         await bot.send_message(chat_id=chat_id, text=f"Записано: {category} — {amount}")
     except Exception as e:
         logger.error("Sheets error: %s", e)
@@ -160,6 +160,8 @@ def setup_handlers(dp, bot) -> None:
 
             # Check for audio/voice attachment
             attachments = getattr(body, "attachments", None) or []
+            if attachments:
+                logger.info("Attachments: %s", [(getattr(a, "type", "?"), str(a)[:80]) for a in attachments])
             audio = next((a for a in attachments if getattr(a, "type", "") in ("audio", "voice")), None)
 
             if audio:
