@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sshpass *)",
+      "Bash(docker compose *)",
+      "Bash(docker build *)",
+      "Bash(docker logs *)",
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(git add *)",
+      "Bash(git pull *)",
+      "Bash(git clone *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(curl *)",
+      "Bash(pip install *)",
+      "Bash(pip3 install *)",
+      "Bash(apt-get *)",
+      "Bash(security *)"
+    ]
+  }
+}
