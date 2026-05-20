@@ -46,8 +46,12 @@ async def on_message(event) -> None:
 @app.post("/webhook")
 async def handle_webhook(request: Request) -> JSONResponse:
     try:
+        body = await request.body()
+        logger.info("Webhook POST received: %s", body[:500])
         data = await request.json()
+        logger.info("Webhook data: %s", str(data)[:300])
         event = await process_update_webhook(event_json=data, bot=bot)
+        logger.info("Parsed event: %s", event)
         if event:
             await dp.handle(event)
     except Exception as e:
