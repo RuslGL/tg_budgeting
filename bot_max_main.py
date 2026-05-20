@@ -15,7 +15,7 @@ logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-WEBHOOK_URL = "https://aaayyy.ru:8443/max/webhook"
+WEBHOOK_URL = "http://aaayyy.ru/max/webhook"
 WEBHOOK_PORT = 8090
 
 bot = Bot(config.BOT_TOKEN_MAX)
