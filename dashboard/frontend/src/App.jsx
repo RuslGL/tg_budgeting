@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  return isMobile
+}
 
 const COLORS = [
   '#3b82f6', '#8b5cf6', '#06b6d4', '#f59e0b', '#10b981',
@@ -153,14 +163,14 @@ function PieCard({ title, subtitle, data, showYearTotals }) {
         <div style={S.empty}>Нет данных</div>
       ) : (
         <>
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
                 data={chartData}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
-                cy="45%"
+                cy="50%"
                 outerRadius={100}
                 innerRadius={40}
                 paddingAngle={2}
@@ -172,7 +182,6 @@ function PieCard({ title, subtitle, data, showYearTotals }) {
                 ))}
               </Pie>
               <Tooltip content={(props) => <CustomTooltip {...props} total={yearExpense} />} />
-              <Legend content={<CustomLegend />} />
             </PieChart>
           </ResponsiveContainer>
 
@@ -267,6 +276,7 @@ function BarCard({ title, subtitle, data }) {
 }
 
 export default function App() {
+  const isMobile = useIsMobile()
   const [company, setCompany] = useState('family')
   const [project, setProject] = useState('all')
   const [projects, setProjects] = useState([])
@@ -389,33 +399,25 @@ export default function App() {
         </div>
       </div>
 
-      <div style={S.chartsRow}>
-        <PieCard
-          title="За месяц"
-          subtitle={monthLabel}
-          data={monthData}
-          showYearTotals
-        />
-        <PieCard
-          title="За год"
-          subtitle={String(selectedYear || '')}
-          data={yearData}
-          showYearTotals
-        />
-      </div>
-
-      <div style={{ ...S.chartsRow, marginTop: 16 }}>
-        <BarCard
-          title="По пользователям — месяц"
-          subtitle={monthLabel}
-          data={monthByAuthor}
-        />
-        <BarCard
-          title="По пользователям — год"
-          subtitle={String(selectedYear || '')}
-          data={yearByAuthor}
-        />
-      </div>
+      {isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <PieCard title="За месяц" subtitle={monthLabel} data={monthData} showYearTotals />
+          <BarCard title="По пользователям — месяц" subtitle={monthLabel} data={monthByAuthor} />
+          <PieCard title="За год" subtitle={String(selectedYear || '')} data={yearData} showYearTotals />
+          <BarCard title="По пользователям — год" subtitle={String(selectedYear || '')} data={yearByAuthor} />
+        </div>
+      ) : (
+        <>
+          <div style={S.chartsRow}>
+            <PieCard title="За месяц" subtitle={monthLabel} data={monthData} showYearTotals />
+            <PieCard title="За год" subtitle={String(selectedYear || '')} data={yearData} showYearTotals />
+          </div>
+          <div style={{ ...S.chartsRow, marginTop: 16 }}>
+            <BarCard title="По пользователям — месяц" subtitle={monthLabel} data={monthByAuthor} />
+            <BarCard title="По пользователям — год" subtitle={String(selectedYear || '')} data={yearByAuthor} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
