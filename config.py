@@ -33,6 +33,10 @@ FATSECRET_CLIENT_ID: str = os.getenv("FATSECRET_CLIENT_ID", "")
 FATSECRET_CLIENT_SECRET: str = os.getenv("FATSECRET_CLIENT_SECRET", "")
 
 BOT_TOKEN_MAX: str = os.getenv("BOT_TOKEN_MAX", "")
+_max_allowed_list = [uid.strip() for uid in os.getenv("MAX_ALLOWED_USERS", "").split(",") if uid.strip()]
+_max_names_list = [n.strip() for n in os.getenv("MAX_USERS_NAME", "").split(",") if n.strip()]
+MAX_ALLOWED_USERS: set[str] = set(_max_allowed_list)
+MAX_USER_NAMES: dict[str, str] = dict(zip(_max_allowed_list, _max_names_list))
 
 BOT_TOKEN_ASSISTANT: str = os.getenv("BOT_TOKEN_ASSISTANT", "")
 ASSISTANT_SPREADSHEET_ID: str = os.getenv("ASSISTANT_SPREADSHEET_ID", "")
