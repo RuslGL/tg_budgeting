@@ -9,6 +9,7 @@ from maxapi import Bot, Dispatcher
 from maxapi.methods.types.getted_updates import process_update_webhook
 
 import config
+from services import transcription
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
@@ -23,6 +24,20 @@ dp = Dispatcher()
 app = FastAPI()
 
 
+async def _download_audio(url: str) -> bytes | None:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                headers={"Authorization": config.BOT_TOKEN_MAX},
+                timeout=aiohttp.ClientTimeout(total=60),
+            ) as resp:
+                return await resp.read()
+    except Exception as e:
+        logger.error("Audio download error: %s", e)
+        return None
+
+
 @dp.message_created()
 async def on_message(event) -> None:
     try:
@@ -34,10 +49,28 @@ async def on_message(event) -> None:
 
         logger.info("Received from %s: text=%r attachments=%d", user_id, text, len(attachments))
 
-        for att in attachments:
-            logger.info("  attachment type=%r", getattr(att, "type", "?"))
+        # Voice message
+        audio = next((a for a in attachments if str(getattr(a, "type", "")).lower() == "audio"), None)
+        if audio:
+            url = getattr(getattr(audio, "payload", None), "url", None)
+            logger.info("Downloading audio: %s", url)
+            file_bytes = await _download_audio(url)
+            if not file_bytes:
+                await event.message.answer("Не удалось скачать аудио.")
+                return
+            try:
+                text = await transcription.transcribe(file_bytes)
+                logger.info("Transcribed: %r", text)
+            except Exception as e:
+                logger.error("Transcription error: %s", e)
+                await event.message.answer("Не удалось распознать речь.")
+                return
 
-        await event.message.answer("Получил сообщение!")
+        if not text:
+            await event.message.answer("Получил пустое сообщение.")
+            return
+
+        await event.message.answer(f"Ты сказал: {text}")
 
     except Exception as e:
         logger.error("Handler error: %s", e)
