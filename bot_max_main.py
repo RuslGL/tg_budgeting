@@ -9,10 +9,8 @@ from maxapi import Bot, Dispatcher
 from maxapi.methods.types.getted_updates import process_update_webhook
 
 import config
-from bot_max.handlers import setup_handlers
 
-logging.basicConfig(level=config.LOG_LEVEL)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
@@ -22,9 +20,27 @@ WEBHOOK_PORT = 8090
 
 bot = Bot(config.BOT_TOKEN_MAX)
 dp = Dispatcher()
-setup_handlers(dp, bot)
-
 app = FastAPI()
+
+
+@dp.message_created()
+async def on_message(event) -> None:
+    try:
+        sender = event.message.sender
+        user_id = str(sender.user_id) if sender else "unknown"
+        body = event.message.body
+        text = getattr(body, "text", "") or ""
+        attachments = getattr(body, "attachments", []) or []
+
+        logger.info("Received from %s: text=%r attachments=%d", user_id, text, len(attachments))
+
+        for att in attachments:
+            logger.info("  attachment type=%r", getattr(att, "type", "?"))
+
+        await event.message.answer("Получил сообщение!")
+
+    except Exception as e:
+        logger.error("Handler error: %s", e)
 
 
 @app.post("/webhook")
@@ -35,7 +51,7 @@ async def handle_webhook(request: Request) -> JSONResponse:
         if event:
             await dp.handle(event)
     except Exception as e:
-        logger.error("Webhook handler error: %s", e)
+        logger.error("Webhook error: %s", e)
     return JSONResponse({"ok": True})
 
 
@@ -46,36 +62,25 @@ async def health() -> JSONResponse:
 
 async def register_webhook() -> None:
     async with aiohttp.ClientSession() as session:
-        # Remove old subscriptions first
-        try:
-            subs_resp = await session.get(
-                "https://botapi.max.ru/subscriptions",
-                headers={"Authorization": config.BOT_TOKEN_MAX},
-            )
-            subs = (await subs_resp.json()).get("subscriptions", [])
-            for sub in subs:
-                url = sub.get("url", "")
-                if url:
-                    await session.delete(
-                        f"https://botapi.max.ru/subscriptions?url={url}",
-                        headers={"Authorization": config.BOT_TOKEN_MAX},
-                    )
-                    logger.info("Removed old webhook: %s", url)
-        except Exception as e:
-            logger.warning("Could not clean old subscriptions: %s", e)
-
-        # Register new webhook
+        # clean old
+        subs_resp = await session.get(
+            "https://botapi.max.ru/subscriptions",
+            headers={"Authorization": config.BOT_TOKEN_MAX},
+        )
+        for sub in (await subs_resp.json()).get("subscriptions", []):
+            url = sub.get("url", "")
+            if url:
+                await session.delete(
+                    f"https://botapi.max.ru/subscriptions?url={url}",
+                    headers={"Authorization": config.BOT_TOKEN_MAX},
+                )
+        # register
         resp = await session.post(
             "https://botapi.max.ru/subscriptions",
             headers={"Authorization": config.BOT_TOKEN_MAX},
             json={
                 "url": WEBHOOK_URL,
-                "update_types": [
-                    "message_created",
-                    "bot_started",
-                    "message_callback",
-                    "message_edited",
-                ],
+                "update_types": ["message_created", "bot_started"],
             },
         )
         result = await resp.json()
@@ -89,7 +94,7 @@ async def main() -> None:
     await register_webhook()
     cfg = uvicorn.Config(app, host="0.0.0.0", port=WEBHOOK_PORT, log_level="warning")
     server = uvicorn.Server(cfg)
-    logger.info("Max bot webhook server started on port %d", WEBHOOK_PORT)
+    logger.info("Max bot started on port %d", WEBHOOK_PORT)
     await server.serve()
 
 
