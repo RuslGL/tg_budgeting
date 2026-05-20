@@ -95,6 +95,8 @@ async def register_webhook() -> None:
 
 
 async def main() -> None:
+    # Initialize dispatcher (required for webhook mode)
+    await dp._Dispatcher__ready(bot)
     await register_webhook()
     cfg = uvicorn.Config(app, host="0.0.0.0", port=WEBHOOK_PORT, log_level="warning")
     server = uvicorn.Server(cfg)
