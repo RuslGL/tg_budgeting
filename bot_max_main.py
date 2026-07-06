@@ -3,8 +3,6 @@ import logging
 import ssl
 import time
 
-ssl._create_default_https_context = ssl._create_unverified_context
-
 import aiohttp
 import uvicorn
 from fastapi import FastAPI, Request
@@ -344,6 +342,15 @@ async def register_webhook() -> None:
 
 
 async def main() -> None:
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+    bot.session = aiohttp.ClientSession(
+        base_url=bot.api_url,
+        timeout=bot.default_connection.timeout,
+        headers={"Authorization": config.BOT_TOKEN_MAX},
+        connector=aiohttp.TCPConnector(ssl=ssl_ctx),
+    )
     await dp._Dispatcher__ready(bot)
     await register_webhook()
     cfg = uvicorn.Config(app, host="0.0.0.0", port=WEBHOOK_PORT, log_level="warning")
