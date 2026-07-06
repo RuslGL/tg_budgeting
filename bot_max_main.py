@@ -24,8 +24,10 @@ WEBHOOK_URL = "http://aaayyy.ru/max/webhook"
 WEBHOOK_PORT = 8090
 TIMEOUT = 300
 MAX_ATTEMPTS = 3
+MAX_API_URL = "https://platform-api2.max.ru"
 
 bot = Bot(config.BOT_TOKEN_MAX)
+bot.api_url = MAX_API_URL
 dp = Dispatcher()
 app = FastAPI()
 
@@ -313,18 +315,18 @@ async def health() -> JSONResponse:
 async def register_webhook() -> None:
     async with aiohttp.ClientSession() as session:
         subs_resp = await session.get(
-            "https://botapi.max.ru/subscriptions",
+            "https://platform-api2.max.ru/subscriptions",
             headers={"Authorization": config.BOT_TOKEN_MAX},
         )
         for sub in (await subs_resp.json()).get("subscriptions", []):
             url = sub.get("url", "")
             if url:
                 await session.delete(
-                    f"https://botapi.max.ru/subscriptions?url={url}",
+                    f"https://platform-api2.max.ru/subscriptions?url={url}",
                     headers={"Authorization": config.BOT_TOKEN_MAX},
                 )
         resp = await session.post(
-            "https://botapi.max.ru/subscriptions",
+            "https://platform-api2.max.ru/subscriptions",
             headers={"Authorization": config.BOT_TOKEN_MAX},
             json={
                 "url": WEBHOOK_URL,
