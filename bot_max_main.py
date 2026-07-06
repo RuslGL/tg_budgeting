@@ -7,7 +7,6 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from maxapi import Bot, Dispatcher
-from maxapi.client.default import DefaultConnectionProperties
 from maxapi.methods.types.getted_updates import process_update_webhook
 from maxapi.types.attachments.attachment import ButtonsPayload
 from maxapi.types.attachments.buttons.callback_button import CallbackButton
@@ -27,12 +26,7 @@ TIMEOUT = 300
 MAX_ATTEMPTS = 3
 MAX_API_URL = "https://platform-api2.max.ru"
 
-bot = Bot(
-    config.BOT_TOKEN_MAX,
-    default_connection=DefaultConnectionProperties(
-        connector=aiohttp.TCPConnector(ssl=False),
-    ),
-)
+bot = Bot(config.BOT_TOKEN_MAX)
 bot.api_url = MAX_API_URL
 dp = Dispatcher()
 app = FastAPI()
@@ -347,6 +341,7 @@ async def register_webhook() -> None:
 
 
 async def main() -> None:
+    bot.default_connection.kwargs["connector"] = aiohttp.TCPConnector(ssl=False)
     await dp._Dispatcher__ready(bot)
     await register_webhook()
     cfg = uvicorn.Config(app, host="0.0.0.0", port=WEBHOOK_PORT, log_level="warning")
