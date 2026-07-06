@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import ssl
 import time
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 import aiohttp
 import uvicorn
@@ -341,7 +344,6 @@ async def register_webhook() -> None:
 
 
 async def main() -> None:
-    bot.default_connection.kwargs["connector"] = aiohttp.TCPConnector(ssl=False)
     await dp._Dispatcher__ready(bot)
     await register_webhook()
     cfg = uvicorn.Config(app, host="0.0.0.0", port=WEBHOOK_PORT, log_level="warning")
