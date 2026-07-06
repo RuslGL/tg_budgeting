@@ -314,7 +314,11 @@ async def health() -> JSONResponse:
 
 
 async def register_webhook() -> None:
-    async with aiohttp.ClientSession() as session:
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+    connector = aiohttp.TCPConnector(ssl=ssl_ctx)
+    async with aiohttp.ClientSession(connector=connector) as session:
         subs_resp = await session.get(
             "https://platform-api2.max.ru/subscriptions",
             headers={"Authorization": config.BOT_TOKEN_MAX},
