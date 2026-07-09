@@ -21,7 +21,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-WEBHOOK_URL = "https://aaayyy.ru:8443/max/webhook"
+WEBHOOK_URL = "https://aaayyy.ru/max/webhook"
 WEBHOOK_PORT = 8090
 TIMEOUT = 300
 MAX_ATTEMPTS = 3
