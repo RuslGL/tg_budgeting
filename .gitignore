@@ -1,5 +1,6 @@
 # Environment
 .env
+инструкция.md
 .env.local
 .env.*.local
 
