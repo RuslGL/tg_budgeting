@@ -31,10 +31,11 @@ def _is_calendar_category(category: str) -> bool:
     return category in config.CALENDAR_CATEGORIES and bool(config.GOOGLE_CALENDAR_ID)
 
 
-def _confirm_text(note_date: str, category: str, text: str, event_date: str | None) -> str:
+def _confirm_text(note_date: str, category: str, text: str, event_date: str | None, event_time: str | None = None) -> str:
     msg = f"Записано.\n{note_date} · {category}"
     if event_date:
-        msg += f"\nСобытие: {event_date}"
+        time_part = f" в {event_time}" if event_time else ""
+        msg += f"\nСобытие: {event_date}{time_part}"
     msg += f"\n\n{text}"
     return msg
 
@@ -51,22 +52,23 @@ async def process_note(message: Message, text: str, state: FSMContext) -> None:
 
     category = parsed.get("category", "unknown")
     event_date = parsed.get("event_date")
+    event_time = parsed.get("event_time")
     clean_text = parsed.get("note_text") or text
     note_date = date.today().isoformat()
-    logger.info("parse_note result: category=%s event_date=%s note_text=%s", category, event_date, clean_text)
+    logger.info("parse_note result: category=%s event_date=%s event_time=%s note_text=%s", category, event_date, event_time, clean_text)
 
     if category != "unknown" and category in categories:
         if _is_calendar_category(category) and not event_date:
             await state.set_state(NoteForm.clarifying_date)
-            await state.update_data(text=clean_text, date=note_date, category=category, clarify_ts=time.time())
+            await state.update_data(text=clean_text, date=note_date, category=category, event_time=event_time, clarify_ts=time.time())
             await message.answer("Укажи дату события (например: 15 апреля или 2026-04-15)")
             return
-        sheets.append_note(note_date, clean_text, category, event_date)
-        await message.answer(_confirm_text(note_date, category, clean_text, event_date))
+        sheets.append_note(note_date, clean_text, category, event_date, event_time)
+        await message.answer(_confirm_text(note_date, category, clean_text, event_date, event_time))
         return
 
     await state.set_state(NoteForm.clarifying_category)
-    await state.update_data(text=text, date=note_date, event_date=event_date)
+    await state.update_data(text=text, date=note_date, event_date=event_date, event_time=event_time)
     await message.answer(
         "Какой тип заметки?",
         reply_markup=_category_keyboard(categories),
@@ -115,6 +117,7 @@ async def handle_category_choice(callback: CallbackQuery, state: FSMContext) -> 
     note_date = data.get("date")
     text = data.get("text")
     event_date = data.get("event_date")
+    event_time = data.get("event_time")
 
     if _is_calendar_category(category) and not event_date:
         await state.set_state(NoteForm.clarifying_date)
@@ -123,8 +126,8 @@ async def handle_category_choice(callback: CallbackQuery, state: FSMContext) -> 
         return
 
     await state.clear()
-    sheets.append_note(note_date, text, category, event_date)
-    await callback.message.edit_text(_confirm_text(note_date, category, text, event_date))
+    sheets.append_note(note_date, text, category, event_date, event_time)
+    await callback.message.edit_text(_confirm_text(note_date, category, text, event_date, event_time))
 
 
 DATE_CLARIFY_TIMEOUT = 5 * 60  # 5 minutes
@@ -139,10 +142,13 @@ async def _process_date_input(message: Message, date_text: str, state: FSMContex
     text = data.get("text")
     note_date = data.get("date")
     category = data.get("category")
+    event_time = data.get("event_time")
 
     try:
         parsed = await llm.parse_note(date_text, [])
         event_date = parsed.get("event_date")
+        if parsed.get("event_time"):
+            event_time = parsed.get("event_time")
     except Exception:
         event_date = None
 
@@ -151,8 +157,8 @@ async def _process_date_input(message: Message, date_text: str, state: FSMContex
         return
 
     await state.clear()
-    sheets.append_note(note_date, text, category, event_date)
-    await message.answer(_confirm_text(note_date, category, text, event_date))
+    sheets.append_note(note_date, text, category, event_date, event_time)
+    await message.answer(_confirm_text(note_date, category, text, event_date, event_time))
 
 
 @router.message(NoteForm.clarifying_date, F.text)

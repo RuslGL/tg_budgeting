@@ -104,14 +104,20 @@ def get_note_categories() -> list[str]:
     return _note_categories_cache
 
 
-def _create_calendar_event(event_date: str, text: str) -> str:
-    logger.info("Creating calendar event: date=%s text=%s calendarId=%s", event_date, text[:50], config.GOOGLE_CALENDAR_ID)
+def _create_calendar_event(event_date: str, text: str, event_time: Optional[str] = None) -> str:
+    logger.info("Creating calendar event: date=%s time=%s text=%s calendarId=%s", event_date, event_time, text[:50], config.GOOGLE_CALENDAR_ID)
     creds = Credentials.from_service_account_info(config.GOOGLE_CREDENTIALS, scopes=SCOPES)
     service = build("calendar", "v3", credentials=creds)
+    time_str = event_time or "09:00"
+    h, m = map(int, time_str.split(":"))
+    end_m = m + 30
+    end_h = (h + end_m // 60) % 24
+    end_m = end_m % 60
+    end_str = f"{end_h:02d}:{end_m:02d}"
     event = {
         "summary": text[:100],
-        "start": {"dateTime": f"{event_date}T07:00:00", "timeZone": "Europe/Moscow"},
-        "end": {"dateTime": f"{event_date}T07:30:00", "timeZone": "Europe/Moscow"},
+        "start": {"dateTime": f"{event_date}T{time_str}:00", "timeZone": "Europe/Moscow"},
+        "end": {"dateTime": f"{event_date}T{end_str}:00", "timeZone": "Europe/Moscow"},
         "reminders": {
             "useDefault": False,
             "overrides": [{"method": "popup", "minutes": 0}],
@@ -122,7 +128,7 @@ def _create_calendar_event(event_date: str, text: str) -> str:
     return result["id"]
 
 
-def append_note(date: str, text: str, category: str, event_date: Optional[str] = None) -> str:
+def append_note(date: str, text: str, category: str, event_date: Optional[str] = None, event_time: Optional[str] = None) -> str:
     note_id = str(uuid.uuid4())
     calendar_event_id = ""
     logger.info(
@@ -135,7 +141,7 @@ def append_note(date: str, text: str, category: str, event_date: Optional[str] =
         and config.GOOGLE_CALENDAR_ID
     ):
         try:
-            calendar_event_id = _create_calendar_event(event_date, text)
+            calendar_event_id = _create_calendar_event(event_date, text, event_time)
         except Exception as e:
             logger.error("Calendar event creation failed: %s", e)
     client = _get_client()
