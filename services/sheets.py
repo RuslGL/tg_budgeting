@@ -114,8 +114,9 @@ def _create_calendar_event(event_date: str, text: str, event_time: Optional[str]
     end_h = (h + end_m // 60) % 24
     end_m = end_m % 60
     end_str = f"{end_h:02d}:{end_m:02d}"
+    summary = f"{time_str} — {text[:97]}" if event_time else text[:100]
     event = {
-        "summary": text[:100],
+        "summary": summary,
         "start": {"dateTime": f"{event_date}T{time_str}:00", "timeZone": "Europe/Moscow"},
         "end": {"dateTime": f"{event_date}T{end_str}:00", "timeZone": "Europe/Moscow"},
         "reminders": {
@@ -147,7 +148,7 @@ def append_note(date: str, text: str, category: str, event_date: Optional[str] =
     client = _get_client()
     sheet = client.open_by_key(config.SPREADSHEET_ID)
     ws = sheet.worksheet("notes")
-    ws.append_row([note_id, date, text, category, calendar_event_id, event_date or ""])
+    ws.append_row([note_id, date, text, category, calendar_event_id, event_date or "", event_time or ""])
     return note_id
 
 

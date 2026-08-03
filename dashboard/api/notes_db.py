@@ -21,11 +21,13 @@ def init_notes_table() -> None:
             conn.execute("ALTER TABLE notes ADD COLUMN calendar_event_id TEXT NOT NULL DEFAULT ''")
         if "event_date" not in cols:
             conn.execute("ALTER TABLE notes ADD COLUMN event_date TEXT NOT NULL DEFAULT ''")
+        if "event_time" not in cols:
+            conn.execute("ALTER TABLE notes ADD COLUMN event_time TEXT NOT NULL DEFAULT ''")
         conn.commit()
 
 
 def get_notes(category: str | None, date_from: str | None, date_to: str | None) -> list[dict]:
-    query = "SELECT id, date, text, type, event_date FROM notes WHERE 1=1"
+    query = "SELECT id, date, text, type, event_date, event_time FROM notes WHERE 1=1"
     params: list = []
     if category:
         query += " AND type = ?"
@@ -36,10 +38,13 @@ def get_notes(category: str | None, date_from: str | None, date_to: str | None) 
     if date_to:
         query += " AND date <= ?"
         params.append(date_to)
-    query += " ORDER BY date DESC, rowid DESC"
+    if category == "календарь":
+        query += " ORDER BY CASE WHEN event_date = '' THEN '9999-99-99' ELSE event_date END ASC, CASE WHEN event_time = '' THEN '99:99' ELSE event_time END ASC"
+    else:
+        query += " ORDER BY date DESC, rowid DESC"
     with sqlite3.connect(DB_PATH) as conn:
         rows = conn.execute(query, params).fetchall()
-    return [{"id": r[0], "date": r[1], "text": r[2], "type": r[3], "event_date": r[4] or ""} for r in rows]
+    return [{"id": r[0], "date": r[1], "text": r[2], "type": r[3], "event_date": r[4] or "", "event_time": r[5] or ""} for r in rows]
 
 
 def get_note_categories() -> list[str]:

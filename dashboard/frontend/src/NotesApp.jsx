@@ -177,7 +177,7 @@ function NoteCard({ note, categories, onDelete, t }) {
             marginBottom: 6,
             letterSpacing: '0.2px',
           }}>
-            Назначено: {formatDate(note.event_date)}
+            {formatDate(note.event_date)}{note.event_time ? ` в ${note.event_time}` : ''}
           </div>
         )}
         <div style={{
