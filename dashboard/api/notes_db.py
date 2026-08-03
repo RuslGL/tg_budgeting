@@ -38,7 +38,7 @@ def get_notes(category: str | None, date_from: str | None, date_to: str | None) 
     if date_to:
         query += " AND date <= ?"
         params.append(date_to)
-    if category == "календарь":
+    if category and category.lower() == "календарь":
         query += " ORDER BY CASE WHEN event_date = '' THEN '9999-99-99' ELSE event_date END ASC, CASE WHEN event_time = '' THEN '99:99' ELSE event_time END ASC"
     else:
         query += " ORDER BY date DESC, rowid DESC"
