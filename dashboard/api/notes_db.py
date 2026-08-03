@@ -38,10 +38,11 @@ def get_notes(category: str | None, date_from: str | None, date_to: str | None) 
     if date_to:
         query += " AND date <= ?"
         params.append(date_to)
-    if category and category.lower() == "календарь":
-        query += " ORDER BY CASE WHEN event_date = '' THEN '9999-99-99' ELSE event_date END ASC, CASE WHEN event_time = '' THEN '99:99' ELSE event_time END ASC"
-    else:
-        query += " ORDER BY date DESC, rowid DESC"
+    query += (
+        " ORDER BY date DESC,"
+        " CASE WHEN event_time = '' THEN '99:99' ELSE event_time END ASC,"
+        " rowid DESC"
+    )
     with sqlite3.connect(DB_PATH) as conn:
         rows = conn.execute(query, params).fetchall()
     return [{"id": r[0], "date": r[1], "text": r[2], "type": r[3], "event_date": r[4] or "", "event_time": r[5] or ""} for r in rows]
