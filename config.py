@@ -28,7 +28,7 @@ CALENDAR_CATEGORIES: list[str] = [c.strip().lower() for c in os.getenv("CALENDAR
 
 BOT_TOKEN_CALORIES: str = os.getenv("BOT_TOKEN_CALORIES", "")
 CALORIES_SECRET: str = os.getenv("CALORIES_SECRET", "")
-DASHBOARD_URL: str = os.getenv("DASHBOARD_URL", "http://dashboard:8080")
+DASHBOARD_URL: str = os.getenv("DASHBOARD_URL", "http://localhost:8080")
 FATSECRET_CLIENT_ID: str = os.getenv("FATSECRET_CLIENT_ID", "")
 FATSECRET_CLIENT_SECRET: str = os.getenv("FATSECRET_CLIENT_SECRET", "")
 
