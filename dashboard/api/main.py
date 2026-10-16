@@ -2,12 +2,14 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
+from datetime import date as date_cls
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 import cal_db
 import cal_sync
@@ -174,6 +176,22 @@ async def notes_list(
 ):
     _check_notes(secret)
     return notes_db.get_notes(category, date_from, date_to)
+
+
+class NoteIn(BaseModel):
+    text: str
+    category: str
+    event_date: str = ""
+    event_time: str = ""
+
+
+@app.post("/n/{secret}/api/notes")
+async def create_note(secret: str, note: NoteIn):
+    _check_notes(secret)
+    today = date_cls.today().isoformat()
+    note_id = notes_sync.create_note_in_sheets(today, note.text, note.category, note.event_date, note.event_time)
+    notes_db.insert_note_local(note_id, today, note.text, note.category, note.event_date, note.event_time)
+    return {"ok": True, "id": note_id}
 
 
 @app.delete("/n/{secret}/api/note/{note_id}")

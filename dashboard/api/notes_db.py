@@ -56,6 +56,15 @@ def get_note_categories() -> list[str]:
     return [r[0] for r in rows]
 
 
+def insert_note_local(note_id: str, date: str, text: str, category: str, event_date: str = "", event_time: str = "") -> None:
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO notes (id, date, text, type, calendar_event_id, event_date, event_time) VALUES (?, ?, ?, ?, '', ?, ?)",
+            (note_id, date, text, category, event_date, event_time),
+        )
+        conn.commit()
+
+
 def delete_note_local(note_id: str) -> None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))

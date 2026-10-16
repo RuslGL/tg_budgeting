@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sqlite3
+import uuid
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -15,8 +16,32 @@ DB_PATH = os.getenv("DB_PATH", "/data/dashboard.db")
 SPREADSHEET_ID = os.environ["SPREADSHEET_ID"]
 GOOGLE_CREDENTIALS = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
 GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "")
+CALENDAR_CATEGORIES = [c.strip().lower() for c in os.getenv("CALENDAR_CATEGORIES", "Календарь").split(",") if c.strip()]
 
 logger = logging.getLogger(__name__)
+
+
+def _create_calendar_event(event_date: str, text: str, event_time: str = "") -> str:
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    service = build("calendar", "v3", credentials=creds)
+    time_str = event_time or "09:00"
+    h, m = map(int, time_str.split(":"))
+    end_m = m + 30
+    end_h = (h + end_m // 60) % 24
+    end_m = end_m % 60
+    end_str = f"{end_h:02d}:{end_m:02d}"
+    summary = f"{time_str} — {text[:97]}" if event_time else text[:100]
+    event = {
+        "summary": summary,
+        "start": {"dateTime": f"{event_date}T{time_str}:00", "timeZone": "Europe/Moscow"},
+        "end": {"dateTime": f"{event_date}T{end_str}:00", "timeZone": "Europe/Moscow"},
+        "reminders": {
+            "useDefault": False,
+            "overrides": [{"method": "popup", "minutes": 0}],
+        },
+    }
+    result = service.events().insert(calendarId=GOOGLE_CALENDAR_ID, body=event).execute()
+    return result["id"]
 
 
 def run_notes_sync() -> int:
@@ -50,6 +75,22 @@ def run_notes_sync() -> int:
 
     logger.debug("Notes sync: inserted %d rows", len(records))
     return len(records)
+
+
+def create_note_in_sheets(date: str, text: str, category: str, event_date: str = "", event_time: str = "") -> str:
+    note_id = str(uuid.uuid4())
+    calendar_event_id = ""
+    if event_date and category.strip().lower() in CALENDAR_CATEGORIES and GOOGLE_CALENDAR_ID:
+        try:
+            calendar_event_id = _create_calendar_event(event_date, text, event_time)
+        except Exception as e:
+            logger.error("Calendar event creation failed: %s", e)
+
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    gc = gspread.authorize(creds)
+    ws = gc.open_by_key(SPREADSHEET_ID).worksheet("notes")
+    ws.append_row([note_id, date, text, category, calendar_event_id, event_date, event_time])
+    return note_id
 
 
 def delete_note_from_sheets(note_id: str) -> None:

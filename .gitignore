@@ -71,5 +71,8 @@ logs/
 .ipynb_checkpoints/
 *.ipynb
 
+# Node
+node_modules/
+
 # Alembic (if using)
 # alembic/versions/*.py  # uncomment to ignore auto-generated migrations

@@ -81,6 +81,24 @@ function formatDate(dateStr) {
   return `${d}.${m}.${y}`
 }
 
+function renderFormatted(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>
+    }
+    return part
+  })
+}
+
+function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
 function TrashIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -185,7 +203,7 @@ function NoteCard({ note, categories, onDelete, t }) {
           color: t.noteText,
           lineHeight: 1.55,
           whiteSpace: 'pre-wrap',
-        }}>{note.text}</div>
+        }}>{renderFormatted(note.text)}</div>
       </div>
       <button
         onClick={() => onDelete(note.id)}
@@ -208,12 +226,151 @@ function NoteCard({ note, categories, onDelete, t }) {
   )
 }
 
+function NewNoteModal({ categories, onClose, onSaved, t, dark }) {
+  const [text, setText] = useState('')
+  const [category, setCategory] = useState(categories[0] || '')
+  const [eventDate, setEventDate] = useState('')
+  const [eventTime, setEventTime] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const isCalendar = category.trim().toLowerCase() === 'календарь'
+
+  function handleSave() {
+    if (!text.trim() || !category || saving) return
+    setSaving(true)
+    fetch(`${API_BASE}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text.trim(),
+        category,
+        event_date: isCalendar ? eventDate : '',
+        event_time: isCalendar ? eventTime : '',
+      }),
+    })
+      .then(r => r.json())
+      .then(() => {
+        onSaved()
+        onClose()
+      })
+      .catch(console.error)
+      .finally(() => setSaving(false))
+  }
+
+  const inputStyle = {
+    background: t.inputBg,
+    border: `1.5px solid ${t.inputBorder}`,
+    borderRadius: 8,
+    padding: '8px 10px',
+    fontSize: 14,
+    color: t.inputColor,
+    outline: 'none',
+    colorScheme: dark ? 'dark' : 'light',
+    fontFamily: 'inherit',
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: 20, boxSizing: 'border-box',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: dark ? '#22213a' : '#ffffff',
+          borderRadius: 14,
+          padding: 20,
+          width: '100%',
+          maxWidth: 440,
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 700, color: t.title, marginBottom: 14 }}>
+          Новая заметка
+        </div>
+
+        <textarea
+          autoFocus
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Текст заметки... **жирным** можно выделить"
+          rows={5}
+          style={{ ...inputStyle, width: '100%', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }}
+        />
+
+        <div style={{ marginTop: 12, marginBottom: isCalendar ? 12 : 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {categories.map((cat, i) => {
+              const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length]
+              const active = category === cat
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: 20,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    border: `1.5px solid ${active ? color : t.pillBorder}`,
+                    background: active ? `${color}22` : 'transparent',
+                    color: active ? color : t.pillText,
+                  }}
+                >
+                  {cat}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {isCalendar && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 0 }}>
+            <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={inputStyle} />
+            <input type="time" value={eventTime} onChange={e => setEventTime(e.target.value)} style={inputStyle} />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 16px', borderRadius: 8, fontSize: 14,
+              border: 'none', background: 'none', color: t.pillText, cursor: 'pointer',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!text.trim() || !category || saving}
+            style={{
+              padding: '8px 18px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+              border: 'none', background: '#6C63FF', color: '#fff',
+              cursor: (!text.trim() || !category || saving) ? 'default' : 'pointer',
+              opacity: (!text.trim() || !category || saving) ? 0.5 : 1,
+            }}
+          >
+            {saving ? 'Сохраняю...' : 'Сохранить'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function NotesApp() {
   const [notes, setNotes] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [showNewNote, setShowNewNote] = useState(false)
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem('notes-theme')
     return saved !== null ? saved === 'dark' : true
@@ -236,16 +393,17 @@ export default function NotesApp() {
       .then(setCategories)
   }, [])
 
+  function fetchNotes() {
+    const params = new URLSearchParams()
+    if (selectedCategory) params.set('category', selectedCategory)
+    if (dateFrom) params.set('date_from', dateFrom)
+    if (dateTo) params.set('date_to', dateTo)
+    fetch(`${API_BASE}/notes?${params}`)
+      .then(r => r.json())
+      .then(setNotes)
+  }
+
   useEffect(() => {
-    function fetchNotes() {
-      const params = new URLSearchParams()
-      if (selectedCategory) params.set('category', selectedCategory)
-      if (dateFrom) params.set('date_from', dateFrom)
-      if (dateTo) params.set('date_to', dateTo)
-      fetch(`${API_BASE}/notes?${params}`)
-        .then(r => r.json())
-        .then(setNotes)
-    }
     fetchNotes()
     const interval = setInterval(fetchNotes, 10000)
     return () => clearInterval(interval)
@@ -278,7 +436,21 @@ export default function NotesApp() {
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '0.5px', color: t.title }}>
             Заметки
           </div>
-          <ThemeToggle dark={dark} onToggle={() => setDark(d => !d)} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => setShowNewNote(true)}
+              title="Новая заметка"
+              style={{
+                width: 32, height: 32, borderRadius: '50%',
+                border: 'none', background: '#6C63FF', color: '#fff',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <PlusIcon />
+            </button>
+            <ThemeToggle dark={dark} onToggle={() => setDark(d => !d)} />
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -395,6 +567,16 @@ export default function NotesApp() {
             t={t}
           />
         ))
+      )}
+
+      {showNewNote && (
+        <NewNoteModal
+          categories={categories}
+          onClose={() => setShowNewNote(false)}
+          onSaved={fetchNotes}
+          t={t}
+          dark={dark}
+        />
       )}
     </div>
   )
