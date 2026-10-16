@@ -1,6 +1,9 @@
 # Environment
 .env
-инструкция.md
+instructions/
+instructions/инструкция_доступ_к_сайту.md
+instructions/инструкция_олимпиада.md
+Бюджет_восстановление/
 .env.local
 .env.*.local
 
