@@ -21,9 +21,7 @@ CALENDAR_CATEGORIES = [c.strip().lower() for c in os.getenv("CALENDAR_CATEGORIES
 logger = logging.getLogger(__name__)
 
 
-def _create_calendar_event(event_date: str, text: str, event_time: str = "") -> str:
-    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
-    service = build("calendar", "v3", credentials=creds)
+def _calendar_event_body(event_date: str, text: str, event_time: str = "") -> dict:
     time_str = event_time or "09:00"
     h, m = map(int, time_str.split(":"))
     end_m = m + 30
@@ -31,7 +29,7 @@ def _create_calendar_event(event_date: str, text: str, event_time: str = "") -> 
     end_m = end_m % 60
     end_str = f"{end_h:02d}:{end_m:02d}"
     summary = f"{time_str} — {text[:97]}" if event_time else text[:100]
-    event = {
+    return {
         "summary": summary,
         "start": {"dateTime": f"{event_date}T{time_str}:00", "timeZone": "Europe/Moscow"},
         "end": {"dateTime": f"{event_date}T{end_str}:00", "timeZone": "Europe/Moscow"},
@@ -40,8 +38,27 @@ def _create_calendar_event(event_date: str, text: str, event_time: str = "") -> 
             "overrides": [{"method": "popup", "minutes": 0}],
         },
     }
+
+
+def _create_calendar_event(event_date: str, text: str, event_time: str = "") -> str:
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    service = build("calendar", "v3", credentials=creds)
+    event = _calendar_event_body(event_date, text, event_time)
     result = service.events().insert(calendarId=GOOGLE_CALENDAR_ID, body=event).execute()
     return result["id"]
+
+
+def _update_calendar_event(event_id: str, event_date: str, text: str, event_time: str = "") -> None:
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    service = build("calendar", "v3", credentials=creds)
+    event = _calendar_event_body(event_date, text, event_time)
+    service.events().update(calendarId=GOOGLE_CALENDAR_ID, eventId=event_id, body=event).execute()
+
+
+def _delete_calendar_event(event_id: str) -> None:
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    service = build("calendar", "v3", credentials=creds)
+    service.events().delete(calendarId=GOOGLE_CALENDAR_ID, eventId=event_id).execute()
 
 
 def run_notes_sync() -> int:
@@ -118,9 +135,7 @@ def delete_note_from_sheets(note_id: str) -> None:
 
     if calendar_event_id and GOOGLE_CALENDAR_ID:
         try:
-            creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
-            service = build("calendar", "v3", credentials=creds)
-            service.events().delete(calendarId=GOOGLE_CALENDAR_ID, eventId=calendar_event_id).execute()
+            _delete_calendar_event(calendar_event_id)
         except Exception as e:
             logger.error("Calendar delete error: %s", e)
 
@@ -130,3 +145,33 @@ def delete_note_from_sheets(note_id: str) -> None:
     cell = ws.find(note_id)
     if cell:
         ws.delete_rows(cell.row)
+
+
+def update_note_in_sheets(note_id: str, text: str, category: str, event_date: str = "", event_time: str = "") -> str:
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute(
+            "SELECT calendar_event_id FROM notes WHERE id = ?", (note_id,)
+        ).fetchone()
+    old_calendar_event_id = row[0] if row and row[0] else ""
+
+    wants_calendar = bool(event_date) and category.strip().lower() in CALENDAR_CATEGORIES and bool(GOOGLE_CALENDAR_ID)
+    calendar_event_id = old_calendar_event_id
+
+    try:
+        if old_calendar_event_id and wants_calendar:
+            _update_calendar_event(old_calendar_event_id, event_date, text, event_time)
+        elif old_calendar_event_id and not wants_calendar:
+            _delete_calendar_event(old_calendar_event_id)
+            calendar_event_id = ""
+        elif not old_calendar_event_id and wants_calendar:
+            calendar_event_id = _create_calendar_event(event_date, text, event_time)
+    except Exception as e:
+        logger.error("Calendar update error: %s", e)
+
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    gc = gspread.authorize(creds)
+    ws = gc.open_by_key(SPREADSHEET_ID).worksheet("notes")
+    cell = ws.find(note_id)
+    if cell:
+        ws.update(f"C{cell.row}:G{cell.row}", [[text, category, calendar_event_id, event_date, event_time]])
+    return calendar_event_id

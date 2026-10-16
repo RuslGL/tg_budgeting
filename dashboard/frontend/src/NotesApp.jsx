@@ -216,7 +216,15 @@ function ThemeToggle({ dark, onToggle }) {
   )
 }
 
-function NoteCard({ note, categories, onDelete, t }) {
+function PencilIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </svg>
+  )
+}
+
+function NoteCard({ note, categories, onDelete, onEdit, t }) {
   const color = getCategoryColor(categories, note.type)
   const isToday = note.date === today()
   const [hovered, setHovered] = useState(false)
@@ -271,32 +279,50 @@ function NoteCard({ note, categories, onDelete, t }) {
           lineHeight: 1.55,
         }}>{renderFormatted(note.text)}</div>
       </div>
-      <button
-        onClick={() => onDelete(note.id)}
-        style={{
-          flexShrink: 0,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: hovered ? '#E8649A' : t.deleteColor,
-          padding: '2px 4px',
-          borderRadius: 6,
-          lineHeight: 1,
-          transition: 'color 0.15s',
-        }}
-        title="Удалить"
-      >
-        <TrashIcon />
-      </button>
+      <div style={{ display: 'flex', flexShrink: 0, gap: 2 }}>
+        <button
+          onClick={() => onEdit(note)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: hovered ? '#6C63FF' : t.deleteColor,
+            padding: '2px 4px',
+            borderRadius: 6,
+            lineHeight: 1,
+            transition: 'color 0.15s',
+          }}
+          title="Редактировать"
+        >
+          <PencilIcon />
+        </button>
+        <button
+          onClick={() => onDelete(note.id)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: hovered ? '#E8649A' : t.deleteColor,
+            padding: '2px 4px',
+            borderRadius: 6,
+            lineHeight: 1,
+            transition: 'color 0.15s',
+          }}
+          title="Удалить"
+        >
+          <TrashIcon />
+        </button>
+      </div>
     </div>
   )
 }
 
-function NewNoteModal({ categories, onClose, onSaved, t, dark }) {
-  const [text, setText] = useState('')
-  const [category, setCategory] = useState(categories[0] || '')
-  const [eventDate, setEventDate] = useState('')
-  const [eventTime, setEventTime] = useState('')
+function NoteModal({ categories, editingNote, onClose, onSaved, t, dark }) {
+  const isEdit = !!editingNote
+  const [text, setText] = useState(editingNote?.text || '')
+  const [category, setCategory] = useState(editingNote?.type || categories[0] || '')
+  const [eventDate, setEventDate] = useState(editingNote?.event_date || '')
+  const [eventTime, setEventTime] = useState(editingNote?.event_time || '')
   const [saving, setSaving] = useState(false)
 
   const isCalendar = category.trim().toLowerCase() === 'календарь'
@@ -304,8 +330,9 @@ function NewNoteModal({ categories, onClose, onSaved, t, dark }) {
   function handleSave() {
     if (!text.trim() || !category || saving) return
     setSaving(true)
-    fetch(`${API_BASE}/notes`, {
-      method: 'POST',
+    const url = isEdit ? `${API_BASE}/note/${editingNote.id}` : `${API_BASE}/notes`
+    fetch(url, {
+      method: isEdit ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: text.trim(),
@@ -356,7 +383,7 @@ function NewNoteModal({ categories, onClose, onSaved, t, dark }) {
         }}
       >
         <div style={{ fontSize: 16, fontWeight: 700, color: t.title, marginBottom: 14 }}>
-          Новая заметка
+          {isEdit ? 'Редактировать заметку' : 'Новая заметка'}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
@@ -441,7 +468,7 @@ export default function NotesApp() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [showNewNote, setShowNewNote] = useState(false)
+  const [modal, setModal] = useState(null)
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem('notes-theme')
     return saved !== null ? saved === 'dark' : true
@@ -509,7 +536,7 @@ export default function NotesApp() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
-              onClick={() => setShowNewNote(true)}
+              onClick={() => setModal('new')}
               title="Новая заметка"
               style={{
                 width: 32, height: 32, borderRadius: '50%',
@@ -635,15 +662,17 @@ export default function NotesApp() {
             note={note}
             categories={categories}
             onDelete={handleDelete}
+            onEdit={n => setModal(n)}
             t={t}
           />
         ))
       )}
 
-      {showNewNote && (
-        <NewNoteModal
+      {modal && (
+        <NoteModal
           categories={categories}
-          onClose={() => setShowNewNote(false)}
+          editingNote={modal === 'new' ? null : modal}
+          onClose={() => setModal(null)}
           onSaved={fetchNotes}
           t={t}
           dark={dark}

@@ -71,6 +71,15 @@ def insert_note_local(note_id: str, date: str, text: str, category: str, event_d
         conn.commit()
 
 
+def update_note_local(note_id: str, text: str, category: str, calendar_event_id: str = "", event_date: str = "", event_time: str = "") -> None:
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "UPDATE notes SET text = ?, type = ?, calendar_event_id = ?, event_date = ?, event_time = ? WHERE id = ?",
+            (text, category, calendar_event_id, event_date, event_time, note_id),
+        )
+        conn.commit()
+
+
 def delete_note_local(note_id: str) -> None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))

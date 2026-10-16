@@ -196,6 +196,14 @@ async def create_note(secret: str, note: NoteIn):
     return {"ok": True, "id": note_id}
 
 
+@app.put("/n/{secret}/api/note/{note_id}")
+async def update_note(secret: str, note_id: str, note: NoteIn):
+    _check_notes(secret)
+    calendar_event_id = notes_sync.update_note_in_sheets(note_id, note.text, note.category, note.event_date, note.event_time)
+    notes_db.update_note_local(note_id, note.text, note.category, calendar_event_id, note.event_date, note.event_time)
+    return {"ok": True}
+
+
 @app.delete("/n/{secret}/api/note/{note_id}")
 async def delete_note(secret: str, note_id: str):
     _check_notes(secret)
