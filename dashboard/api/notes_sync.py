@@ -77,6 +77,22 @@ def run_notes_sync() -> int:
     return len(records)
 
 
+def sync_note_categories() -> int:
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    gc = gspread.authorize(creds)
+    ws = gc.open_by_key(SPREADSHEET_ID).worksheet("notes_categories")
+    names = [row[0].strip() for row in ws.get_all_values() if row and row[0].strip()]
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM note_categories")
+        conn.executemany(
+            "INSERT INTO note_categories (name, sort_order) VALUES (?, ?)",
+            [(name, i) for i, name in enumerate(names)],
+        )
+        conn.commit()
+    return len(names)
+
+
 def create_note_in_sheets(date: str, text: str, category: str, event_date: str = "", event_time: str = "") -> str:
     note_id = str(uuid.uuid4())
     calendar_event_id = ""

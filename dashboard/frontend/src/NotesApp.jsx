@@ -81,14 +81,81 @@ function formatDate(dateStr) {
   return `${d}.${m}.${y}`
 }
 
-function renderFormatted(text) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+function renderInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*|~~[^~]+~~)/g)
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
       return <strong key={i}>{part.slice(2, -2)}</strong>
     }
+    if (part.startsWith('~~') && part.endsWith('~~') && part.length > 4) {
+      return <s key={i}>{part.slice(2, -2)}</s>
+    }
     return part
   })
+}
+
+function renderFormatted(text) {
+  return text.split('\n').map((line, i) => {
+    const bullet = line.match(/^[-*]\s+(.*)$/)
+    if (bullet) {
+      return (
+        <div key={i} style={{ display: 'flex', gap: 8 }}>
+          <span style={{ flexShrink: 0 }}>•</span>
+          <span>{renderInline(bullet[1])}</span>
+        </div>
+      )
+    }
+    return <div key={i}>{line.length ? renderInline(line) : ' '}</div>
+  })
+}
+
+function InfoIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-5M12 8h.01" />
+    </svg>
+  )
+}
+
+function MarkdownHint({ t, dark }) {
+  const [show, setShow] = useState(false)
+  return (
+    <span
+      style={{ position: 'relative', display: 'inline-flex', marginLeft: 6, verticalAlign: 'middle' }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <span style={{
+        width: 16, height: 16, borderRadius: '50%',
+        border: `1.5px solid ${t.pillText}`, color: t.pillText,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'default',
+      }}>
+        <InfoIcon />
+      </span>
+      {show && (
+        <div style={{
+          position: 'absolute', top: '140%', left: 0, zIndex: 10,
+          background: dark ? '#2d2b4e' : '#ffffff',
+          border: `1px solid ${t.inputBorder}`,
+          borderRadius: 10,
+          padding: '12px 14px',
+          width: 230,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          fontSize: 12.5,
+          color: t.noteText,
+          lineHeight: 1.9,
+          fontWeight: 400,
+        }}>
+          <div><code>**жирный**</code> → <strong>жирный</strong></div>
+          <div><code>~~зачёркнутый~~</code> → <s>зачёркнутый</s></div>
+          <div><code>- пункт</code> → • пункт списка</div>
+          <div>Enter дважды — пустая строка между абзацами</div>
+        </div>
+      )}
+    </span>
+  )
 }
 
 function PlusIcon() {
@@ -202,7 +269,6 @@ function NoteCard({ note, categories, onDelete, t }) {
           fontSize: 14,
           color: t.noteText,
           lineHeight: 1.55,
-          whiteSpace: 'pre-wrap',
         }}>{renderFormatted(note.text)}</div>
       </div>
       <button
@@ -293,11 +359,16 @@ function NewNoteModal({ categories, onClose, onSaved, t, dark }) {
           Новая заметка
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 12, color: t.pillText }}>Текст</span>
+          <MarkdownHint t={t} dark={dark} />
+        </div>
+
         <textarea
           autoFocus
           value={text}
           onChange={e => setText(e.target.value)}
-          placeholder="Текст заметки... **жирным** можно выделить"
+          placeholder="Текст заметки..."
           rows={5}
           style={{ ...inputStyle, width: '100%', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }}
         />

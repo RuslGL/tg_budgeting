@@ -46,6 +46,8 @@ async def _notes_sync_loop() -> None:
         try:
             count = notes_sync.run_notes_sync()
             logger.debug("Notes sync complete: %d rows", count)
+            cat_count = notes_sync.sync_note_categories()
+            logger.debug("Note categories sync complete: %d rows", cat_count)
         except Exception as e:
             logger.error("Notes sync error: %s", e)
         await asyncio.sleep(10)

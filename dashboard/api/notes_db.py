@@ -23,6 +23,12 @@ def init_notes_table() -> None:
             conn.execute("ALTER TABLE notes ADD COLUMN event_date TEXT NOT NULL DEFAULT ''")
         if "event_time" not in cols:
             conn.execute("ALTER TABLE notes ADD COLUMN event_time TEXT NOT NULL DEFAULT ''")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS note_categories (
+                name TEXT PRIMARY KEY,
+                sort_order INTEGER NOT NULL
+            )
+        """)
         conn.commit()
 
 
@@ -51,7 +57,7 @@ def get_notes(category: str | None, date_from: str | None, date_to: str | None) 
 def get_note_categories() -> list[str]:
     with sqlite3.connect(DB_PATH) as conn:
         rows = conn.execute(
-            "SELECT DISTINCT type FROM notes ORDER BY type"
+            "SELECT name FROM note_categories ORDER BY sort_order"
         ).fetchall()
     return [r[0] for r in rows]
 
