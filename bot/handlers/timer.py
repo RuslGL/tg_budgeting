@@ -33,10 +33,12 @@ async def handle_voice(message: Message, bot: Bot) -> None:
 
 async def _save(message: Message, text: str) -> None:
     now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H:%M")
     try:
-        sheets.append_timer_entry(now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), text)
+        sheets.append_timer_entry(date_str, time_str, text)
     except Exception as e:
         logger.error("Ошибка записи: %s", e)
         await message.answer("Не удалось записать. Попробуй ещё раз.")
         return
-    await message.answer("Записано.")
+    await message.answer(f"Записано.\n{date_str} {time_str}\n{text}")
