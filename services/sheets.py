@@ -169,6 +169,13 @@ def append_transaction(date: str, category: str, amount: float, original_text: s
     ws.append_row([date, category, type_, amount, original_text, author, company, project])
 
 
+def append_timer_entry(date: str, time_str: str, text: str) -> None:
+    client = _get_client()
+    sheet = client.open_by_key(config.SPREADSHEET_ID)
+    ws = sheet.worksheet("таймер")
+    ws.append_row([date, time_str, text])
+
+
 # --- Calorie tracking ---
 
 def append_meal(date: str, time_str: str, food_name: str, grams: float,

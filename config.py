@@ -43,3 +43,7 @@ ASSISTANT_SPREADSHEET_ID: str = os.getenv("ASSISTANT_SPREADSHEET_ID", "")
 ASSISTANT_USER_ID: int = int(os.getenv("ASSISTANT_USER_ID", "666038149"))
 
 PROXY_URL: str = os.getenv("PROXY_URL", "")
+
+BOT_TOKEN_TIMER: str = os.getenv("BOT_TOKEN_TIMER", "")
+_timer_allowed_list = [int(uid.strip()) for uid in os.getenv("ALLOWED_USERS_TIMER", "").split(",") if uid.strip()]
+ALLOWED_USERS_TIMER: set[int] = set(_timer_allowed_list)
