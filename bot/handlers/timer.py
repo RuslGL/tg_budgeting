@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from aiogram import Bot, F, Router
 from aiogram.types import Message
@@ -8,6 +9,8 @@ from services import sheets, transcription
 
 router = Router()
 logger = logging.getLogger(__name__)
+
+MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 
 
 @router.message(F.text)
@@ -32,7 +35,7 @@ async def handle_voice(message: Message, bot: Bot) -> None:
 
 
 async def _save(message: Message, text: str) -> None:
-    now = datetime.now()
+    now = datetime.now(MOSCOW_TZ)
     date_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%H:%M")
     try:
