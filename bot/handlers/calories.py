@@ -1,6 +1,7 @@
 import logging
 import re
-from datetime import date, datetime
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import aiohttp
 from aiogram import Bot, F, Router
@@ -16,6 +17,16 @@ from services import llm, sheets, transcription
 logger = logging.getLogger(__name__)
 
 router = Router()
+
+MOSCOW_TZ = ZoneInfo("Europe/Moscow")
+
+
+def _today() -> str:
+    return datetime.now(MOSCOW_TZ).date().isoformat()
+
+
+def _now_hm() -> str:
+    return datetime.now(MOSCOW_TZ).strftime("%H:%M")
 
 
 async def _trigger_sync() -> None:
@@ -65,8 +76,8 @@ def _recent_keyboard(meals: list[dict]) -> InlineKeyboardMarkup:
 
 
 async def _process_food_item(message: Message, food_name: str, grams: float) -> None:
-    today = date.today().isoformat()
-    now = datetime.now().strftime("%H:%M")
+    today = _today()
+    now = _now_hm()
 
     from services import food_db as fdb
     source = "db"
@@ -152,7 +163,7 @@ async def _handle_text(message: Message, text: str, state: FSMContext) -> None:
         return
 
     if re.search(r"удали(ть)?\s+последн", text.lower()):
-        today = date.today().isoformat()
+        today = _today()
         try:
             meal = sheets.get_last_meal(today)
         except Exception as e:
@@ -189,7 +200,7 @@ async def _handle_text(message: Message, text: str, state: FSMContext) -> None:
             await message.answer("Не удалось распознать вес. Напиши, например: вес 82.5")
             return
         try:
-            sheets.log_weight(date.today().isoformat(), float(value))
+            sheets.log_weight(_today(), float(value))
         except Exception as e:
             logger.error("log_weight failed: %s", e)
             await message.answer("Ошибка при сохранении веса.")
@@ -523,8 +534,8 @@ async def _handle_custom_product(message: Message, text: str, state: FSMContext)
 
     await state.clear()
 
-    today = date.today().isoformat()
-    now = datetime.now().strftime("%H:%M")
+    today = _today()
+    now = _now_hm()
     try:
         sheets.append_meal(today, now, food_name, grams,
                            kbju["calories"], kbju["protein"], kbju["fat"], kbju["carbs"])
